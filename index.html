@@ -806,7 +806,7 @@ function StudentDashboard({ student, onLogout }) {
           </div>
         )}
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 4px 4px'}}>
-          <span style={{color:'#888',fontSize:'1rem'}}>최근 완강 <strong style={{color:'#27ae60'}}>{doneCount}개</strong></span>
+          <span style={{color:'#888',fontSize:'0.82rem'}}>최근 완강 <strong style={{color:'#27ae60'}}>{doneCount}개</strong></span>
           <span style={{color:'#bbb',fontSize:'0.9rem'}}>{student.name} 학생</span>
         </div>
 
@@ -889,12 +889,12 @@ function StudentDashboard({ student, onLogout }) {
                 const due=hw.dueDate?new Date(hw.dueDate):null;
                 const isOverdue=due&&!isDone&&due<new Date();
                 return (
-                  <div key={hw.id} style={{border:`1.5px solid ${isDone?'#27ae60':isOverdue?'#A02020':'#1a2744'}`,borderRadius:8,padding:'10px 13px',background:'white',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}} onClick={()=>setSelectedLecture(lec)}>
+                  <div key={hw.id} style={{border:`1.5px solid ${isDone?'#1a6b3a':isOverdue?'#A02020':'#1a2744'}`,borderRadius:8,padding:'10px 13px',background:'white',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}} onClick={()=>setSelectedLecture(lec)}>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:700,fontSize:'0.85rem',color:'#222',marginBottom:3}}>{lec.textbook} {lec.page}p — {lec.title}</div>
                       <div style={{fontSize:'0.72rem',color:isOverdue?'#A02020':'#888'}}>{lec.subject} | {lec.grade}{due?` · ${isOverdue?'⚠️ 기한초과 ':'마감 '}${due.toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})}`:''}</div>
                     </div>
-                    {isDone?<span style={{background:'#27ae60',color:'white',padding:'3px 10px',borderRadius:6,fontSize:'0.73rem',fontWeight:700,whiteSpace:'nowrap',marginLeft:8}}>완강 ✓</span>:<span style={{color:'#1a2744',fontWeight:700,fontSize:'0.82rem',whiteSpace:'nowrap',marginLeft:8}}>▶ 보기</span>}
+                    {isDone?<span style={{background:'#1a6b3a',color:'white',padding:'3px 10px',borderRadius:6,fontSize:'0.73rem',fontWeight:700,whiteSpace:'nowrap',marginLeft:8}}>완강 ✓</span>:<span style={{color:'#1a2744',fontWeight:700,fontSize:'0.82rem',whiteSpace:'nowrap',marginLeft:8}}>▶ 보기</span>}
                   </div>
                 );
               })}
