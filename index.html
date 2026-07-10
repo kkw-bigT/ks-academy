@@ -15,13 +15,13 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
 .header-top{background:white;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e0e0e0}
 .header-top img{width:52px;height:52px;border-radius:50%}
 .header-top-right{text-align:right}
-.header-top-right h1{font-size:1.6rem;font-weight:900;color:#1a2744;letter-spacing:2px}
+.header-top-right h1{font-size:1.6rem;font-weight:900;color:#1a2744;letter-spacing:2px;font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;-webkit-text-stroke:0.5px #1a2744}
 .header-top-right p{font-size:0.75rem;color:#888;letter-spacing:1px}
-.header-banner{background:#1a2744;padding:18px 20px;display:flex;align-items:center;justify-content:space-between}
-.header-banner-left span{display:block;font-size:0.7rem;color:rgba(255,255,255,0.6);letter-spacing:2px}
-.header-banner-left strong{display:block;font-size:1.1rem;font-weight:700;color:white}
+.header-banner{background:#1a2744;padding:27px 20px;display:flex;align-items:center;justify-content:space-between}
+.header-banner-left span{display:block;font-size:1.0rem;color:rgba(255,255,255,0.6);letter-spacing:2px}
+.header-banner-left strong{display:block;font-size:1.65rem;font-weight:700;color:white}
 .header-banner-right{text-align:right}
-.since2010{color:white;font-weight:700;font-size:0.95rem;position:relative;display:inline-block}
+.since2010{color:white;font-weight:700;font-size:1.4rem;position:relative;display:inline-block}
 .since2010::after{content:'';display:block;height:3px;background:#c0392b;margin-top:3px}
 .header-banner-right .slogan{color:white;font-weight:700;font-size:0.95rem;position:relative;display:inline-block}
 .header-banner-right .slogan::after{content:'';display:block;height:3px;background:#c0392b;margin-top:3px}
@@ -338,6 +338,7 @@ function AdminDashboard({ onLogout }) {
   const [filterSubject, setFilterSubject] = useState('전체');
   const [filterGrade, setFilterGrade] = useState('전체');
   const [msg, setMsg] = useState('');
+  const [expandedStudent, setExpandedStudent] = useState(null);
 
   useEffect(()=>{ loadAll(); },[]);
 
@@ -373,6 +374,26 @@ function AdminDashboard({ onLogout }) {
     return { done, total:lectures.length, pct:lectures.length?Math.round(done/lectures.length*100):0 };
   }
 
+  function exportCSV() {
+    const rows = [['학생이름','출결번호','과목','학년','교재','페이지','문제번호','완강일시','시청시간(초)']];
+    completions.forEach(c=>{
+      const s = students.find(x=>x.id===c.studentId);
+      const l = lectures.find(x=>x.id===c.lectureId);
+      if(!s||!l) return;
+      const dt = c.completedAt?.toDate ? c.completedAt.toDate() : new Date(c.completedAt||0);
+      const dtStr = dt.toLocaleString('ko-KR');
+      rows.push([s.name, s.attendNum, l.subject, l.grade, l.textbook, l.page, l.title, dtStr, c.playSeconds||0]);
+    });
+    const bom = '﻿';
+    const csv = bom + rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('
+');
+    const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download='완강기록_'+(new Date().toLocaleDateString('ko-KR').replace(/\. /g,'-').replace('.',''))+'.csv';
+    a.click(); URL.revokeObjectURL(url);
+  }
+
   return (
     <div>
       <Header user={null} onLogout={onLogout} />
@@ -382,9 +403,10 @@ function AdminDashboard({ onLogout }) {
           <button className="btn btn-gray btn-sm" onClick={onLogout}>로그아웃</button>
         </div>
         {msg && <div className="alert alert-success">{msg}</div>}
-        <div className="tab-bar">
+        <div className="tab-bar" style={{display:'flex',alignItems:'center'}}>
           <button className={"tab"+(tab==='lectures'?' active':'')} onClick={()=>setTab('lectures')}>강의 관리</button>
           <button className={"tab"+(tab==='students'?' active':'')} onClick={()=>setTab('students')}>학생 현황</button>
+          <button className="btn btn-gray btn-sm" style={{marginLeft:'auto',fontSize:'0.78rem'}} onClick={exportCSV}>📥 완강기록 다운로드</button>
         </div>
 
         {tab==='lectures' && (
@@ -429,11 +451,67 @@ function AdminDashboard({ onLogout }) {
              <div className="card" style={{padding:0,overflow:'hidden'}}>
                {students.map(s=>{
                  const {done,total,pct}=getProgress(s.id);
+                 const expanded = expandedStudent===s.id;
+                 const studentComps = completions.filter(c=>c.studentId===s.id)
+                   .map(c=>{
+                     const lec = lectures.find(l=>l.id===c.lectureId);
+                     return {...c, lecture: lec};
+                   })
+                   .filter(c=>c.lecture)
+                   .sort((a,b)=>{
+                     const ta = a.completedAt?.toDate ? a.completedAt.toDate() : new Date(a.completedAt||0);
+                     const tb = b.completedAt?.toDate ? b.completedAt.toDate() : new Date(b.completedAt||0);
+                     return tb - ta;
+                   });
                  return (
-                   <div key={s.id} className="student-row">
-                     <div style={{minWidth:120}}><div style={{fontWeight:700}}>{s.name}</div><div style={{fontSize:'0.78rem',color:'#888'}}>출결번호: {s.attendNum}</div></div>
-                     <div className="progress-bar"><div className="progress-fill" style={{width:pct+'%'}}/></div>
-                     <div style={{minWidth:80,textAlign:'right',fontSize:'0.85rem'}}><span style={{fontWeight:700,color:'#27ae60'}}>{done}</span><span style={{color:'#888'}}>/{total}강 ({pct}%)</span></div>
+                   <div key={s.id}>
+                     <div className="student-row" style={{cursor:'pointer'}} onClick={()=>setExpandedStudent(expanded?null:s.id)}>
+                       <div style={{minWidth:120}}><div style={{fontWeight:700}}>{s.name}</div><div style={{fontSize:'0.78rem',color:'#888'}}>출결번호: {s.attendNum}</div></div>
+                       <div className="progress-bar"><div className="progress-fill" style={{width:pct+'%'}}/></div>
+                       <div style={{minWidth:80,textAlign:'right',fontSize:'0.85rem'}}>
+                         <span style={{fontWeight:700,color:'#27ae60'}}>{done}</span><span style={{color:'#888'}}>/{total}강 ({pct}%)</span>
+                         <span style={{marginLeft:6,color:'#1a2744'}}>{expanded?'▲':'▼'}</span>
+                       </div>
+                     </div>
+                     {expanded && (
+                       <div style={{background:'#f8f9fc',borderBottom:'1px solid #e8e8e8',padding:'8px 12px'}}>
+                         {studentComps.length===0 ? (
+                           <div style={{color:'#aaa',fontSize:'0.85rem',padding:'8px 0'}}>완강 기록이 없습니다</div>
+                         ) : (
+                           <table style={{width:'100%',fontSize:'0.8rem',borderCollapse:'collapse'}}>
+                             <thead>
+                               <tr style={{color:'#888',borderBottom:'1px solid #e0e0e0'}}>
+                                 <th style={{textAlign:'left',padding:'4px 8px',fontWeight:600}}>과목/학년</th>
+                                 <th style={{textAlign:'left',padding:'4px 8px',fontWeight:600}}>교재</th>
+                                 <th style={{textAlign:'left',padding:'4px 8px',fontWeight:600}}>페이지</th>
+                                 <th style={{textAlign:'left',padding:'4px 8px',fontWeight:600}}>문제번호</th>
+                                 <th style={{textAlign:'right',padding:'4px 8px',fontWeight:600}}>완강시각</th>
+                                 <th style={{textAlign:'right',padding:'4px 8px',fontWeight:600}}>시청시간</th>
+                               </tr>
+                             </thead>
+                             <tbody>
+                               {studentComps.map((c,i)=>{
+                                 const l = c.lecture;
+                                 const dt = c.completedAt?.toDate ? c.completedAt.toDate() : new Date(c.completedAt||0);
+                                 const dateStr = dt.toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'});
+                                 const timeStr = dt.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+                                 const mins = c.playSeconds ? Math.floor(c.playSeconds/60)+'분'+Math.round(c.playSeconds%60)+'초' : '-';
+                                 return (
+                                   <tr key={i} style={{borderBottom:'1px solid #f0f0f0',color:'#333'}}>
+                                     <td style={{padding:'5px 8px'}}>{l.subject}/{l.grade}</td>
+                                     <td style={{padding:'5px 8px'}}>{l.textbook}</td>
+                                     <td style={{padding:'5px 8px'}}>{l.page}p</td>
+                                     <td style={{padding:'5px 8px',fontWeight:600,color:'#1a2744'}}>{l.title}</td>
+                                     <td style={{padding:'5px 8px',textAlign:'right',color:'#555'}}>{dateStr} {timeStr}</td>
+                                     <td style={{padding:'5px 8px',textAlign:'right',color:'#27ae60'}}>{mins}</td>
+                                   </tr>
+                                 );
+                               })}
+                             </tbody>
+                           </table>
+                         )}
+                       </div>
+                     )}
                    </div>
                  );
                })}
