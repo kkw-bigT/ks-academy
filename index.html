@@ -96,9 +96,9 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
 .confetti-p{position:absolute;width:8px;height:8px;border-radius:50%;animation:fall 1.5s ease-in forwards}
 @keyframes popIn{0%{transform:scale(0);opacity:0}60%{transform:scale(1.3)}100%{transform:scale(1);opacity:1}}
 @keyframes fall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
-.notice-bar{background:linear-gradient(90deg,#1a2744,#2c3e6b);color:white;padding:10px 16px;display:flex;align-items:center;gap:8px;font-size:0.88rem}
-.notice-bar-icon{font-size:1rem;flex-shrink:0}
-.notice-bar-text{flex:1}
+.notice-bar{background:white;border:1.5px solid #c0392b;border-radius:10px;color:#222;padding:10px 16px;display:flex;align-items:center;gap:10px;font-size:0.88rem;margin-bottom:4px;box-shadow:0 1px 4px rgba(192,57,43,0.08)}
+.notice-bar-icon{flex-shrink:0;display:flex;align-items:center}
+.notice-bar-text{flex:1;color:#333;font-weight:500}
 </style>
 </head>
 <body>
@@ -801,6 +801,7 @@ function StudentDashboard({ student, onLogout }) {
       <div className="container">
         {notice && (
           <div className="notice-bar">
+            <span className="notice-bar-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c0392b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 17v5M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg></span>
             <span className="notice-bar-text">{notice}</span>
           </div>
         )}
