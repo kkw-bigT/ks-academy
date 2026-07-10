@@ -88,6 +88,17 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
 .app-footer{text-align:center;padding:32px 0 24px;}
 .app-footer-brand{font-size:0.8rem;color:#aaa;letter-spacing:2px;margin-bottom:4px}
 .app-footer-slogan{font-size:1.1rem;font-weight:900;color:#c0392b;letter-spacing:1px}
+.confetti-wrap{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.confetti-emoji{font-size:3rem;animation:popIn 0.4s ease-out forwards}
+.confetti-text{font-size:1.5rem;font-weight:900;color:#27ae60;animation:popIn 0.4s 0.1s ease-out both}
+.confetti-sub{font-size:0.9rem;color:#555;animation:popIn 0.4s 0.2s ease-out both}
+.confetti-particles{position:absolute;width:100%;height:100%}
+.confetti-p{position:absolute;width:8px;height:8px;border-radius:50%;animation:fall 1.5s ease-in forwards}
+@keyframes popIn{0%{transform:scale(0);opacity:0}60%{transform:scale(1.3)}100%{transform:scale(1);opacity:1}}
+@keyframes fall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+.notice-bar{background:linear-gradient(90deg,#1a2744,#2c3e6b);color:white;padding:10px 16px;display:flex;align-items:center;gap:8px;font-size:0.88rem}
+.notice-bar-icon{font-size:1rem;flex-shrink:0}
+.notice-bar-text{flex:1}
 </style>
 </head>
 <body>
@@ -160,6 +171,36 @@ function formatDate(ts) {
   const d = ts.toDate ? ts.toDate() : new Date(ts);
   return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
 }
+async function getNotice() {
+  try {
+    const doc = await db.collection('settings').doc('notice').get();
+    if (doc.exists) return doc.data().text || '';
+    return '';
+  } catch(e) { return ''; }
+}
+
+async function setNotice(text) {
+  await db.collection('settings').doc('notice').set({ text, updatedAt: new Date() });
+}
+
+async function getHomework(studentId) {
+  const snap = await db.collection('homework').where('studentId','==',studentId).get();
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+async function getAllHomework() {
+  const snap = await db.collection('homework').get();
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+async function assignHomework(studentId, lectureId, dueDate, note) {
+  await db.collection('homework').add({studentId, lectureId, dueDate, note, assignedAt: new Date()});
+}
+
+async function deleteHomework(id) {
+  await db.collection('homework').doc(id).delete();
+}
+
 async function markComplete(studentId, lectureId, playData) {
   const q = await db.collection('completions')
     .where('studentId','==',studentId).where('lectureId','==',lectureId).get();
@@ -339,13 +380,20 @@ function AdminDashboard({ onLogout }) {
   const [filterGrade, setFilterGrade] = useState('전체');
   const [msg, setMsg] = useState('');
   const [expandedStudent, setExpandedStudent] = useState(null);
+  const [noticeInput, setNoticeInput] = useState('');
+  const [noticeSaved, setNoticeSaved] = useState('');
+  const [homework, setHomework] = useState([]);
+  const [hwStudent, setHwStudent] = useState('');
+  const [hwLecture, setHwLecture] = useState('');
+  const [hwDue, setHwDue] = useState('');
+  const [hwNote, setHwNote] = useState('');
 
   useEffect(()=>{ loadAll(); },[]);
 
   async function loadAll() {
     setLoading(true);
-    const [l,s,c] = await Promise.all([getLectures(),getAllStudents(),getAllCompletions()]);
-    setLectures(l); setStudents(s); setCompletions(c); setLoading(false);
+    const [l,s,c,n,hw] = await Promise.all([getLectures(),getAllStudents(),getAllCompletions(),getNotice(),getAllHomework()]);
+    setLectures(l); setStudents(s); setCompletions(c); setNoticeInput(n); setNoticeSaved(n); setHomework(hw); setLoading(false);
   }
 
   async function handleAdd(data) {
@@ -403,10 +451,12 @@ function AdminDashboard({ onLogout }) {
           <button className="btn btn-gray btn-sm" onClick={onLogout}>로그아웃</button>
         </div>
         {msg && <div className="alert alert-success">{msg}</div>}
-        <div className="tab-bar" style={{display:'flex',alignItems:'center'}}>
+        <div className="tab-bar" style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:4}}>
           <button className={"tab"+(tab==='lectures'?' active':'')} onClick={()=>setTab('lectures')}>강의 관리</button>
           <button className={"tab"+(tab==='students'?' active':'')} onClick={()=>setTab('students')}>학생 현황</button>
-          <button className="btn btn-gray btn-sm" style={{marginLeft:'auto',fontSize:'0.78rem'}} onClick={exportCSV}>📥 완강기록 다운로드</button>
+          <button className={"tab"+(tab==='homework'?' active':'')} onClick={()=>setTab('homework')}>숙제 지정</button>
+          <button className={"tab"+(tab==='notice'?' active':'')} onClick={()=>setTab('notice')}>공지사항</button>
+          <button className="btn btn-gray btn-sm" style={{marginLeft:'auto',fontSize:'0.78rem'}} onClick={exportCSV}>📥 다운로드</button>
         </div>
 
         {tab==='lectures' && (
@@ -528,9 +578,32 @@ function AdminDashboard({ onLogout }) {
   );
 }
 
+function CelebrationOverlay({ onDone }) {
+  const particles = Array.from({length:20},(_,i)=>({
+    left: Math.random()*100+'%',
+    top: Math.random()*30+'%',
+    delay: Math.random()*0.8+'s',
+    color: ['#27ae60','#f39c12','#e74c3c','#3498db','#9b59b6','#1a2744'][Math.floor(Math.random()*6)]
+  }));
+  React.useEffect(()=>{ const t=setTimeout(onDone,2200); return ()=>clearTimeout(t); },[]);
+  return (
+    <div className="confetti-wrap">
+      <div className="confetti-particles">
+        {particles.map((p,i)=>(
+          <div key={i} className="confetti-p" style={{left:p.left,top:p.top,background:p.color,animationDelay:p.delay}}/>
+        ))}
+      </div>
+      <div className="confetti-emoji">🎉</div>
+      <div className="confetti-text">완강!</div>
+      <div className="confetti-sub">잘했어요! 계속 화이팅 💪</div>
+    </div>
+  );
+}
+
 function VideoModal({ lecture, completed, onComplete, onClose }) {
   const [marking, setMarking] = useState(false);
   const [done, setDone] = useState(completed);
+  const [celebrating, setCelebrating] = useState(false);
   const startedAt = React.useRef(new Date());
 
   async function handleComplete() {
@@ -538,11 +611,12 @@ function VideoModal({ lecture, completed, onComplete, onClose }) {
     const playSeconds = Math.round((new Date() - startedAt.current) / 1000);
     const playData = { startedAt: startedAt.current, playSeconds, totalSeconds: 0 };
     await onComplete(lecture.id, playData);
-    setDone(true); setMarking(false);
+    setDone(true); setMarking(false); setCelebrating(true);
   }
 
   return (
     <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
+      {celebrating && <CelebrationOverlay onDone={()=>setCelebrating(false)}/>}
       <div className="modal">
         <div className="modal-header">
           <span style={{fontWeight:700}}>{lecture.title}</span>
@@ -560,7 +634,7 @@ function VideoModal({ lecture, completed, onComplete, onClose }) {
         </div>
         <div className="modal-footer">
           <div style={{fontSize:'0.85rem',color:'#666'}}>{lecture.subject} | {lecture.grade} | {lecture.textbook} | {lecture.page}p</div>
-          {done ? <span className="complete-badge">완강</span> :
+          {done ? <span className="complete-badge">완강 ✓</span> :
            <button className="btn btn-success" onClick={handleComplete} disabled={marking}>{marking?<span className="spinner"/>:'완강 체크'}</button>}
         </div>
       </div>
@@ -576,15 +650,19 @@ function StudentDashboard({ student, onLogout }) {
   const [subject, setSubject] = useState('수학');
   const [grade, setGrade] = useState(GRADES['수학'][0]);
   const [textbook, setTextbook] = useState('');
+  const [textbooks, setTextbooks] = useState([]);
   const [pageSearch, setPageSearch] = useState('');
   const [selectedLecture, setSelectedLecture] = useState(null);
+  const [notice, setNoticeText] = useState('');
+  const [studentTab, setStudentTab] = useState('강의');
+  const [homework, setHomework] = useState([]);
 
   useEffect(()=>{ loadData(); },[]);
 
   async function loadData() {
     setLoading(true);
-    const [l,c] = await Promise.all([getLectures(), getStudentCompletions(student.id)]);
-    setLectures(l); setCompletions(c); setLoading(false);  // c = [{lectureId, completedAt}]
+    const [l,c,n,hw] = await Promise.all([getLectures(), getStudentCompletions(student.id), getNotice(), getHomework(student.id)]);
+    setLectures(l); setCompletions(c); setNoticeText(n); setHomework(hw); setLoading(false);  // c = [{lectureId, completedAt}]
     const filtered = l.filter(x=>x.subject==='수학'&&x.grade===GRADES['수학'][0]);
     const books = [...new Set(filtered.map(x=>x.textbook))];
     if (books.length>0) setTextbook(books[0]);
@@ -625,23 +703,59 @@ function StudentDashboard({ student, onLogout }) {
     <div>
       <Header user={student} onLogout={onLogout}/>
       <div className="container">
-        <div className="card" style={{display:'flex',alignItems:'center',gap:16}}>
-          <div style={{flex:1}}>
-            <div style={{marginBottom:8,display:'flex',justifyContent:'space-between'}}>
-              <span style={{fontWeight:700,color:'#1a2744'}}>전체 완강 현황</span>
-              <span style={{color:'#27ae60',fontWeight:700}}>{doneCount}/{totalCount}</span>
-            </div>
-            <div className="progress-bar" style={{height:10,margin:0}}>
-              <div className="progress-fill" style={{width:(totalCount?Math.round(doneCount/totalCount*100):0)+'%'}}/>
-            </div>
+        {notice && (
+          <div className="notice-bar">
+            <span className="notice-bar-icon">📢</span>
+            <span className="notice-bar-text">{notice}</span>
           </div>
+        )}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 4px 4px'}}>
+          <span style={{color:'#888',fontSize:'0.85rem'}}>최근 완강 <strong style={{color:'#27ae60'}}>{doneCount}개</strong></span>
+          <span style={{color:'#bbb',fontSize:'0.8rem'}}>{student.name} 학생</span>
         </div>
 
-        <div className="subject-tabs">
+        <div style={{display:'flex',gap:8,marginBottom:12}}>
+          <button className={"subject-tab"+(studentTab==='강의'?' active':'')} style={{flex:1}} onClick={()=>setStudentTab('강의')}>강의 보기</button>
+          <button className={"subject-tab"+(studentTab==='숙제'?' active':'')} style={{flex:1,position:'relative'}} onClick={()=>setStudentTab('숙제')}>
+            숙제
+            {homework.filter(h=>!completions.find(c=>c.lectureId===h.lectureId)).length>0 && (
+              <span style={{position:'absolute',top:-4,right:-4,background:'#c0392b',color:'white',borderRadius:'50%',width:18,height:18,fontSize:'0.7rem',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700}}>
+                {homework.filter(h=>!completions.find(c=>c.lectureId===h.lectureId)).length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {studentTab==='숙제' && (
+          <div>
+            {homework.length===0 ? (
+              <div className="empty">지정된 숙제가 없습니다</div>
+            ) : homework.map(hw=>{
+              const lec = lectures.find(l=>l.id===hw.lectureId);
+              if(!lec) return null;
+              const isDone = !!completions.find(c=>c.lectureId===hw.lectureId);
+              const due = hw.dueDate ? new Date(hw.dueDate) : null;
+              const isOverdue = due && !isDone && due < new Date();
+              return (
+                <div key={hw.id} className="lecture-card" style={{borderColor: isDone?'#27ae60': isOverdue?'#c0392b':'#1a2744', background: isDone?'#f0fff4': isOverdue?'#fff5f5':'white'}}
+                  onClick={()=>setSelectedLecture(lec)}>
+                  <div className="lecture-info">
+                    <div className="lecture-title">{lec.textbook} {lec.page}p — {lec.title}</div>
+                    <div className="lecture-meta">{lec.subject} | {lec.grade}{hw.note ? ' | '+hw.note : ''}</div>
+                    {due && <div style={{fontSize:'0.78rem',color: isOverdue?'#c0392b':'#888',marginTop:2}}>마감: {due.toLocaleDateString('ko-KR')}{isOverdue?' ⚠️ 기한초과':''}</div>}
+                  </div>
+                  {isDone ? <span className="complete-badge">완강 ✓</span> : <span style={{color:'#1a2744',fontWeight:700,fontSize:'0.85rem'}}>▶ 보기</span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {studentTab==='강의' && <div className="subject-tabs">
           {Object.keys(GRADES).map(s=>(
             <button key={s} className={"subject-tab"+(subject===s?' active':'')} onClick={()=>handleSubject(s)}>{s}</button>
           ))}
-        </div>
+        </div>}
 
         <div className="grade-pills">
           {grade ? (
@@ -695,6 +809,8 @@ function StudentDashboard({ student, onLogout }) {
            );
          })
         }
+          </div>
+        )}
       </div>
       <div className="app-footer">
         <div className="app-footer-brand">KS EDU GROUP</div>
