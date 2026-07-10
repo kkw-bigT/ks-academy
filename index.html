@@ -393,9 +393,6 @@ function AdminDashboard({ onLogout }) {
   const [noticeInput, setNoticeInput] = useState('');
   const [noticeSaved, setNoticeSaved] = useState('');
   const [homework, setHomework] = useState([]);
-  const [selectedHomeworkId, setSelectedHomeworkId] = useState(null);
-  const [viewMode, setViewMode] = useState('페이지검색');
-  const [hwStudent, setHwStudent] = useState('');
   const [hwSubject, setHwSubject] = useState('수학');
   const [hwGrade, setHwGrade] = useState('');
   const [hwTextbook, setHwTextbook] = useState('');
@@ -769,6 +766,8 @@ function StudentDashboard({ student, onLogout }) {
   const [notice, setNoticeText] = useState('');
 
   const [homework, setHomework] = useState([]);
+  const [selectedHomeworkId, setSelectedHomeworkId] = useState(null);
+  const [viewMode, setViewMode] = useState('페이지검색');
 
   useEffect(()=>{ loadData(); },[]);
 
