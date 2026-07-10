@@ -671,38 +671,6 @@ function AdminDashboard({ onLogout }) {
           </div>
         )}
 
-        {homework.length>0 && (
-          <div style={{background:'white',borderRadius:12,border:'1.5px solid #e0e0e0',overflow:'hidden',marginTop:16}}>
-            <div style={{background:'#A02020',padding:'11px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <span style={{color:'white',fontSize:'0.9rem',fontWeight:700}}>숙제</span>
-                {(()=>{const cnt=homework.filter(h=>{const ht=h.assignedAt?.toMillis?h.assignedAt.toMillis():(h.assignedAt?new Date(h.assignedAt).getTime():0);return !completions.find(c=>c.lectureId===h.lectureId&&c.completedAt?.toMillis&&c.completedAt.toMillis()>ht);}).length;return cnt>0&&<span style={{background:'white',color:'#A02020',borderRadius:'50%',width:19,height:19,fontSize:'0.65rem',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700}}>{cnt}</span>;})()}
-              </div>
-              <span style={{color:'rgba(255,255,255,0.75)',fontSize:'0.75rem'}}>
-                {(()=>{const cnt=homework.filter(h=>{const ht=h.assignedAt?.toMillis?h.assignedAt.toMillis():(h.assignedAt?new Date(h.assignedAt).getTime():0);return !completions.find(c=>c.lectureId===h.lectureId&&c.completedAt?.toMillis&&c.completedAt.toMillis()>ht);}).length;return `미완료 ${cnt}개`;})()}
-              </span>
-            </div>
-            <div style={{padding:12,display:'flex',flexDirection:'column',gap:8}}>
-              {homework.map(hw=>{
-                const lec=lectures.find(l=>l.id===hw.lectureId);
-                if(!lec) return null;
-                const hwTime=hw.assignedAt?.toMillis?hw.assignedAt.toMillis():(hw.assignedAt?new Date(hw.assignedAt).getTime():0);
-                const isDone=!!completions.find(c=>c.lectureId===hw.lectureId&&c.completedAt?.toMillis&&c.completedAt.toMillis()>hwTime);
-                const due=hw.dueDate?new Date(hw.dueDate):null;
-                const isOverdue=due&&!isDone&&due<new Date();
-                return (
-                  <div key={hw.id} style={{border:`1.5px solid ${isDone?'#27ae60':isOverdue?'#A02020':'#1a2744'}`,borderRadius:8,padding:'10px 13px',background:'white',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}} onClick={()=>setSelectedLecture(lec)}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:'0.85rem',color:'#222',marginBottom:3}}>{lec.textbook} {lec.page}p — {lec.title}</div>
-                      <div style={{fontSize:'0.72rem',color:isOverdue?'#A02020':'#888'}}>{lec.subject} | {lec.grade}{due?` · ${isOverdue?'⚠️ 기한초과 ':'마감 '}${due.toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})}`:''}</div>
-                    </div>
-                    {isDone?<span style={{background:'#27ae60',color:'white',padding:'3px 10px',borderRadius:6,fontSize:'0.73rem',fontWeight:700,whiteSpace:'nowrap',marginLeft:8}}>완강 ✓</span>:<span style={{color:'#1a2744',fontWeight:700,fontSize:'0.82rem',whiteSpace:'nowrap',marginLeft:8}}>▶ 보기</span>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
       <div className="app-footer">
         <div className="app-footer-brand">KS EDU GROUP</div>
@@ -901,6 +869,39 @@ function StudentDashboard({ student, onLogout }) {
          })
         }
       </div>
+        {homework.length>0 && (
+          <div style={{background:'white',borderRadius:12,border:'1.5px solid #e0e0e0',overflow:'hidden',marginTop:16}}>
+            <div style={{background:'#A02020',padding:'11px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <span style={{color:'white',fontSize:'0.9rem',fontWeight:700}}>숙제</span>
+                {(()=>{const cnt=homework.filter(h=>{const ht=h.assignedAt?.toMillis?h.assignedAt.toMillis():(h.assignedAt?new Date(h.assignedAt).getTime():0);return !completions.find(c=>c.lectureId===h.lectureId&&c.completedAt?.toMillis&&c.completedAt.toMillis()>ht);}).length;return cnt>0&&<span style={{background:'white',color:'#A02020',borderRadius:'50%',width:19,height:19,fontSize:'0.65rem',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700}}>{cnt}</span>;})()}
+              </div>
+              <span style={{color:'rgba(255,255,255,0.75)',fontSize:'0.75rem'}}>
+                {(()=>{const cnt=homework.filter(h=>{const ht=h.assignedAt?.toMillis?h.assignedAt.toMillis():(h.assignedAt?new Date(h.assignedAt).getTime():0);return !completions.find(c=>c.lectureId===h.lectureId&&c.completedAt?.toMillis&&c.completedAt.toMillis()>ht);}).length;return `미완료 ${cnt}개`;})()}
+              </span>
+            </div>
+            <div style={{padding:12,display:'flex',flexDirection:'column',gap:8}}>
+              {homework.map(hw=>{
+                const lec=lectures.find(l=>l.id===hw.lectureId);
+                if(!lec) return null;
+                const hwTime=hw.assignedAt?.toMillis?hw.assignedAt.toMillis():(hw.assignedAt?new Date(hw.assignedAt).getTime():0);
+                const isDone=!!completions.find(c=>c.lectureId===hw.lectureId&&c.completedAt?.toMillis&&c.completedAt.toMillis()>hwTime);
+                const due=hw.dueDate?new Date(hw.dueDate):null;
+                const isOverdue=due&&!isDone&&due<new Date();
+                return (
+                  <div key={hw.id} style={{border:`1.5px solid ${isDone?'#27ae60':isOverdue?'#A02020':'#1a2744'}`,borderRadius:8,padding:'10px 13px',background:'white',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}} onClick={()=>setSelectedLecture(lec)}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:'0.85rem',color:'#222',marginBottom:3}}>{lec.textbook} {lec.page}p — {lec.title}</div>
+                      <div style={{fontSize:'0.72rem',color:isOverdue?'#A02020':'#888'}}>{lec.subject} | {lec.grade}{due?` · ${isOverdue?'⚠️ 기한초과 ':'마감 '}${due.toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})}`:''}</div>
+                    </div>
+                    {isDone?<span style={{background:'#27ae60',color:'white',padding:'3px 10px',borderRadius:6,fontSize:'0.73rem',fontWeight:700,whiteSpace:'nowrap',marginLeft:8}}>완강 ✓</span>:<span style={{color:'#1a2744',fontWeight:700,fontSize:'0.82rem',whiteSpace:'nowrap',marginLeft:8}}>▶ 보기</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
       <div className="app-footer">
         <div className="app-footer-brand">KS EDU GROUP</div>
         <div className="app-footer-slogan">관리가 답이다!</div>
