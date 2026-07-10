@@ -12,11 +12,18 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0f2f5;min-height:100vh}
-.header{background:linear-gradient(135deg,#1a2744 0%,#2c3e6b 100%);color:white;padding:12px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
-.header img{width:50px;height:50px;border-radius:50%;border:2px solid rgba(255,255,255,0.3)}
-.header-text h1{font-size:1.2rem;font-weight:700;letter-spacing:1px}
-.header-text p{font-size:0.7rem;opacity:0.8;letter-spacing:2px}
-.since-badge{margin-left:auto;background:#c0392b;color:white;padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:700}
+.header-top{background:white;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e0e0e0}
+.header-top img{width:52px;height:52px;border-radius:50%}
+.header-top-right{text-align:right}
+.header-top-right h1{font-size:1.3rem;font-weight:900;color:#1a2744;letter-spacing:2px}
+.header-top-right p{font-size:0.75rem;color:#888;letter-spacing:1px}
+.header-banner{background:#1a2744;padding:10px 20px;display:flex;align-items:center;justify-content:space-between}
+.header-banner-left span{display:block;font-size:0.7rem;color:rgba(255,255,255,0.6);letter-spacing:2px}
+.header-banner-left strong{display:block;font-size:1.1rem;font-weight:700;color:white}
+.header-banner-right{text-align:right}
+.header-banner-right .slogan{color:white;font-weight:700;font-size:0.95rem;position:relative;display:inline-block}
+.header-banner-right .slogan::after{content:'';display:block;height:3px;background:#c0392b;margin-top:3px}
+.header-user{font-size:0.85rem;color:rgba(255,255,255,0.8)}
 .container{max-width:900px;margin:0 auto;padding:20px}
 .card{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.08);margin-bottom:16px}
 .btn{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s}
@@ -111,8 +118,13 @@ async function loginStudent(name, phone, attendNum) {
   return { id: ref.id, name, phone, attendNum };
 }
 async function getLectures() {
-  const snap = await db.collection('lectures').orderBy('subject').orderBy('grade').orderBy('page').get();
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const snap = await db.collection('lectures').get();
+  const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return docs.sort((a, b) => {
+    if (a.subject !== b.subject) return a.subject.localeCompare(b.subject);
+    if (a.grade !== b.grade) return a.grade.localeCompare(b.grade);
+    return String(a.page).localeCompare(String(b.page), undefined, {numeric: true});
+  });
 }
 async function addLecture(data) { return await db.collection('lectures').add({ ...data, createdAt: new Date() }); }
 async function updateLecture(id, data) { return await db.collection('lectures').doc(id).update(data); }
@@ -137,19 +149,30 @@ async function getAllCompletions() {
 
 function Header({ user, onLogout }) {
   return (
-    <div className="header">
-      <img src={LOGO_URL} alt="KS EDU" />
-      <div className="header-text">
-        <h1>KS EDU GROUP</h1>
-        <p>강의 영상 학습 시스템</p>
-      </div>
-      {user && (
-        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:12}}>
-          <span style={{fontSize:'0.85rem'}}>{user.name} 학생</span>
-          <button className="btn btn-gray btn-sm" onClick={onLogout}>로그아웃</button>
+    <div>
+      <div className="header-top">
+        <img src={LOGO_URL} alt="KS EDU" />
+        <div className="header-top-right">
+          <h1>KS_ACADEMY</h1>
+          <p>middle · high school</p>
         </div>
-      )}
-      <div className="since-badge">since 2010</div>
+      </div>
+      <div className="header-banner">
+        <div className="header-banner-left">
+          <span>KS EDU GROUP</span>
+          <strong>강의 영상 학습 시스템</strong>
+        </div>
+        <div className="header-banner-right">
+          {user ? (
+            <div style={{display:'flex',alignItems:'center',gap:12}}>
+              <span className="header-user">{user.name} 학생</span>
+              <button className="btn btn-gray btn-sm" onClick={onLogout}>로그아웃</button>
+            </div>
+          ) : (
+            <span className="slogan">관리가 답이다!</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -218,6 +241,14 @@ function LectureForm({ initial, onSave, onCancel }) {
   const [youtubeId, setYoutubeId] = useState(initial?.youtubeId || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [existingTextbooks, setExistingTextbooks] = useState([]);
+
+  useEffect(()=>{
+    db.collection('lectures').get().then(snap=>{
+      const books = [...new Set(snap.docs.map(d=>d.data().textbook).filter(Boolean))].sort();
+      setExistingTextbooks(books);
+    });
+  },[]);
 
   function handleSubjectChange(s) { setSubject(s); setGrade(GRADES[s][0]); }
 
@@ -244,7 +275,11 @@ function LectureForm({ initial, onSave, onCancel }) {
           </select></div>
       </div>
       <div className="form-row">
-        <div className="form-group"><label className="label">교재명</label><input className="input" value={textbook} onChange={e=>setTextbook(e.target.value)} placeholder="교재명 입력" /></div>
+        <div className="form-group"><label className="label">교재명</label>
+          <input className="input" value={textbook} onChange={e=>setTextbook(e.target.value)} placeholder="교재명 입력" list="textbook-list" autoComplete="off"/>
+          <datalist id="textbook-list">{existingTextbooks.map(t=><option key={t} value={t}/>)}</datalist>
+          {existingTextbooks.length>0 && <div style={{fontSize:'0.75rem',color:'#888',marginTop:3}}>기존 교재: {existingTextbooks.join(', ')}</div>}
+        </div>
         <div className="form-group"><label className="label">페이지번호</label><input className="input" value={page} onChange={e=>setPage(e.target.value)} placeholder="예: 42" /></div>
       </div>
       <div className="form-group"><label className="label">강의 제목</label><input className="input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="강의 제목 입력" /></div>
