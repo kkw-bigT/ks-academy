@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KS EDU GROUP - 강의 영상</title>
-<script src="https://www.youtube.com/iframe_api"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -93,11 +92,6 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
 </head>
 <body>
 <div id="root"></div>
-<script>
-// YouTube play time tracker
-window._ytPlayers = {};
-window._ytPlayData = {}; // { startedAt, totalPlayMs, lastPlayStart }
-</script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyDML8GJenEjNWvUjx2xZ0k5v23Xyva8_8I",
@@ -193,12 +187,12 @@ function Header({ user, onLogout }) {
       <div className="header-top">
         <img src={LOGO_URL} alt="KS EDU" />
         {user && (
-          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,marginLeft:'auto',marginRight:8}}>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:2,marginLeft:8}}>
             <span style={{fontSize:'0.72rem',color:'#555',whiteSpace:'nowrap'}}>{user.name} 학생</span>
-            <button className="btn btn-gray" style={{padding:'3px 10px',fontSize:'0.72rem'}} onClick={onLogout}>로그아웃</button>
+            <button className="btn btn-gray" style={{padding:'2px 8px',fontSize:'0.7rem'}} onClick={onLogout}>로그아웃</button>
           </div>
         )}
-        <div className="header-top-right">
+        <div className="header-top-right" style={{marginLeft:'auto'}}>
           <h1>KS_ACADEMY</h1>
           <p>middle · high school</p>
         </div>
@@ -459,55 +453,12 @@ function AdminDashboard({ onLogout }) {
 function VideoModal({ lecture, completed, onComplete, onClose }) {
   const [marking, setMarking] = useState(false);
   const [done, setDone] = useState(completed);
-  const [playInfo, setPlayInfo] = useState('');
-  const playerRef = React.useRef(null);
-  const playDataRef = React.useRef({ startedAt: null, totalPlayMs: 0, lastPlayStart: null, totalSeconds: 0 });
-  const containerId = 'yt-player-' + lecture.id;
-
-  React.useEffect(() => {
-    function createPlayer() {
-      if (!window.YT || !window.YT.Player) { setTimeout(createPlayer, 300); return; }
-      playerRef.current = new window.YT.Player(containerId, {
-        videoId: lecture.youtubeId.trim(),
-        playerVars: { rel: 0, modestbranding: 1 },
-        events: {
-          onReady: (e) => {
-            const dur = e.target.getDuration();
-            playDataRef.current.totalSeconds = Math.round(dur);
-          },
-          onStateChange: (e) => {
-            const now = new Date();
-            if (e.data === 1) { // PLAYING
-              if (!playDataRef.current.startedAt) playDataRef.current.startedAt = now;
-              playDataRef.current.lastPlayStart = now;
-            } else if (e.data === 2 || e.data === 0) { // PAUSED or ENDED
-              if (playDataRef.current.lastPlayStart) {
-                playDataRef.current.totalPlayMs += (now - playDataRef.current.lastPlayStart);
-                playDataRef.current.lastPlayStart = null;
-                const secs = Math.round(playDataRef.current.totalPlayMs / 1000);
-                const tot = playDataRef.current.totalSeconds;
-                const fmt = s => Math.floor(s/60)+'분'+(s%60>0?' '+s%60+'초':'');
-                setPlayInfo(tot > 0 ? fmt(secs)+' / 전체 '+fmt(tot)+' 재생' : fmt(secs)+' 재생');
-              }
-            }
-          }
-        }
-      });
-    }
-    createPlayer();
-    return () => { if (playerRef.current) { try { playerRef.current.destroy(); } catch(e){} } };
-  }, []);
+  const startedAt = React.useRef(new Date());
 
   async function handleComplete() {
     setMarking(true);
-    if (playDataRef.current.lastPlayStart) {
-      playDataRef.current.totalPlayMs += (new Date() - playDataRef.current.lastPlayStart);
-    }
-    const playData = {
-      startedAt: playDataRef.current.startedAt,
-      playSeconds: Math.round(playDataRef.current.totalPlayMs / 1000),
-      totalSeconds: playDataRef.current.totalSeconds
-    };
+    const playSeconds = Math.round((new Date() - startedAt.current) / 1000);
+    const playData = { startedAt: startedAt.current, playSeconds, totalSeconds: 0 };
     await onComplete(lecture.id, playData);
     setDone(true); setMarking(false);
   }
@@ -521,14 +472,16 @@ function VideoModal({ lecture, completed, onComplete, onClose }) {
         </div>
         <div className="modal-body">
           <div className="video-container">
-            <div id={containerId}></div>
+            <iframe
+              src={"https://www.youtube.com/embed/"+lecture.youtubeId.trim()+"?rel=0&autoplay=1"}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
           </div>
         </div>
         <div className="modal-footer">
-          <div>
-            <div style={{fontSize:'0.85rem',color:'#666'}}>{lecture.subject} | {lecture.grade} | {lecture.textbook} | {lecture.page}p</div>
-            {playInfo && <div style={{fontSize:'0.78rem',color:'#27ae60',marginTop:3}}>▶ {playInfo}</div>}
-          </div>
+          <div style={{fontSize:'0.85rem',color:'#666'}}>{lecture.subject} | {lecture.grade} | {lecture.textbook} | {lecture.page}p</div>
           {done ? <span className="complete-badge">완강</span> :
            <button className="btn btn-success" onClick={handleComplete} disabled={marking}>{marking?<span className="spinner"/>:'완강 체크'}</button>}
         </div>
@@ -536,6 +489,7 @@ function VideoModal({ lecture, completed, onComplete, onClose }) {
     </div>
   );
 }
+
 
 function StudentDashboard({ student, onLogout }) {
   const [lectures, setLectures] = useState([]);
