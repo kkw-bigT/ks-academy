@@ -17,9 +17,9 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
 .header-top-right{text-align:right}
 .header-top-right h1{font-size:1.6rem;font-weight:900;color:#1a2744;letter-spacing:2px;font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;-webkit-text-stroke:0.5px #1a2744}
 .header-top-right p{font-size:0.75rem;color:#888;letter-spacing:1px}
-.header-banner{background:#1a2744;padding:27px 20px;display:flex;align-items:center;justify-content:space-between}
+.header-banner{background:#1a2744;padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
 .header-banner-left span{display:block;font-size:1.0rem;color:rgba(255,255,255,0.6);letter-spacing:2px}
-.header-banner-left strong{display:block;font-size:1.65rem;font-weight:700;color:white}
+.header-banner-left strong{display:block;font-size:1.15rem;font-weight:700;color:white}
 .header-banner-right{text-align:right}
 .since2010{color:white;font-weight:700;font-size:1.4rem;position:relative;display:inline-block}
 .since2010::after{content:'';display:block;height:3px;background:#c0392b;margin-top:3px}
@@ -384,7 +384,11 @@ function AdminDashboard({ onLogout }) {
   const [noticeSaved, setNoticeSaved] = useState('');
   const [homework, setHomework] = useState([]);
   const [hwStudent, setHwStudent] = useState('');
-  const [hwLecture, setHwLecture] = useState('');
+  const [hwSubject, setHwSubject] = useState('수학');
+  const [hwGrade, setHwGrade] = useState('');
+  const [hwTextbook, setHwTextbook] = useState('');
+  const [hwPageFrom, setHwPageFrom] = useState('');
+  const [hwPageTo, setHwPageTo] = useState('');
   const [hwDue, setHwDue] = useState('');
   const [hwNote, setHwNote] = useState('');
 
@@ -446,7 +450,7 @@ function AdminDashboard({ onLogout }) {
       <Header user={null} onLogout={onLogout} />
       <div className="container">
         <div className="card" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <h2 style={{color:'#1a2744'}}>원장님 관리 페이지</h2>
+          <h2 style={{color:'#1a2744',fontSize:'1.1rem'}}>원장님 관리 페이지</h2>
           <button className="btn btn-gray btn-sm" onClick={onLogout}>로그아웃</button>
         </div>
         {msg && <div className="alert alert-success">{msg}</div>}
@@ -455,7 +459,7 @@ function AdminDashboard({ onLogout }) {
           <button className={"tab"+(tab==='students'?' active':'')} onClick={()=>setTab('students')}>학생 현황</button>
           <button className={"tab"+(tab==='homework'?' active':'')} onClick={()=>setTab('homework')}>숙제 지정</button>
           <button className={"tab"+(tab==='notice'?' active':'')} onClick={()=>setTab('notice')}>공지사항</button>
-          <button className="btn btn-gray btn-sm" style={{marginLeft:'auto',fontSize:'0.78rem'}} onClick={exportCSV}>📥 다운로드</button>
+          <button className="btn btn-gray btn-sm" style={{marginLeft:'auto',fontSize:'0.78rem'}} onClick={exportCSV}>다운로드</button>
         </div>
 
         {tab==='lectures' && (
@@ -571,7 +575,7 @@ function AdminDashboard({ onLogout }) {
 
         {tab==='notice' && (
           <div className="card">
-            <h3 style={{color:'#1a2744',marginBottom:12}}>📢 공지사항 관리</h3>
+            <h3 style={{color:'#1a2744',marginBottom:12}}>공지사항 관리</h3>
             <p style={{fontSize:'0.85rem',color:'#888',marginBottom:12}}>학생 로그인 후 첫 화면 상단에 표시됩니다.</p>
             <textarea className="input" rows={3} style={{resize:'vertical',marginBottom:8}}
               placeholder="예: 이번 주 숙제 - 개념원리 p.42~50 풀기"
@@ -595,24 +599,54 @@ function AdminDashboard({ onLogout }) {
         {tab==='homework' && (
           <div>
             <div className="card" style={{marginBottom:12}}>
-              <h3 style={{color:'#1a2744',marginBottom:12}}>📝 숙제 지정</h3>
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                <select className="select" value={hwStudent} onChange={e=>setHwStudent(e.target.value)}>
-                  <option value=''>학생 선택</option>
-                  {students.map(s=><option key={s.id} value={s.id}>{s.name} ({s.attendNum}번)</option>)}
-                </select>
-                <select className="select" value={hwLecture} onChange={e=>setHwLecture(e.target.value)}>
-                  <option value=''>강의 선택</option>
-                  {lectures.map(l=><option key={l.id} value={l.id}>[{l.subject}/{l.grade}] {l.textbook} {l.page}p - {l.title}</option>)}
-                </select>
-                <input className="input" type="date" value={hwDue} onChange={e=>setHwDue(e.target.value)}/>
-                <input className="input" value={hwNote} onChange={e=>setHwNote(e.target.value)} placeholder="메모 (예: 이번 주까지)"/>
-                <button className="btn btn-primary" disabled={!hwStudent||!hwLecture} onClick={async()=>{
-                  await assignHomework(hwStudent, hwLecture, hwDue, hwNote);
-                  setHwStudent(''); setHwLecture(''); setHwDue(''); setHwNote('');
-                  setMsg('숙제가 지정되었습니다'); setTimeout(()=>setMsg(''),3000); loadAll();
-                }}>숙제 지정</button>
-              </div>
+              <h3 style={{color:'#1a2744',marginBottom:12}}>숙제 지정</h3>
+              {(()=>{
+                const hwGrades = GRADES[hwSubject] || [];
+                const hwTextbooks = [...new Set(lectures.filter(l=>l.subject===hwSubject&&(!hwGrade||l.grade===hwGrade)).map(l=>l.textbook))];
+                const matchedLectures = lectures.filter(l=>{
+                  if(l.subject!==hwSubject) return false;
+                  if(hwGrade&&l.grade!==hwGrade) return false;
+                  if(hwTextbook&&l.textbook!==hwTextbook) return false;
+                  const p=parseInt(l.page);
+                  if(hwPageFrom&&p<parseInt(hwPageFrom)) return false;
+                  if(hwPageTo&&p>parseInt(hwPageTo)) return false;
+                  return true;
+                });
+                return (
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    <select className="select" value={hwStudent} onChange={e=>setHwStudent(e.target.value)}>
+                      <option value=''>학생 선택</option>
+                      {students.map(s=><option key={s.id} value={s.id}>{s.name} ({s.attendNum}번)</option>)}
+                    </select>
+                    <div style={{display:'flex',gap:6}}>
+                      {Object.keys(GRADES).map(s=>(
+                        <button key={s} className={"subject-tab"+(hwSubject===s?' active':'')} style={{flex:1,padding:'8px'}} onClick={()=>{setHwSubject(s);setHwGrade('');setHwTextbook('');}}>{s}</button>
+                      ))}
+                    </div>
+                    <select className="select" value={hwGrade} onChange={e=>{setHwGrade(e.target.value);setHwTextbook('');}}>
+                      <option value=''>학년 선택</option>
+                      {hwGrades.map(g=><option key={g} value={g}>{g}</option>)}
+                    </select>
+                    <select className="select" value={hwTextbook} onChange={e=>setHwTextbook(e.target.value)}>
+                      <option value=''>교재 선택</option>
+                      {hwTextbooks.map(t=><option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                      <input className="input" type="number" value={hwPageFrom} onChange={e=>setHwPageFrom(e.target.value)} placeholder="시작 페이지" style={{flex:1}}/>
+                      <span style={{color:'#888',flexShrink:0}}>~</span>
+                      <input className="input" type="number" value={hwPageTo} onChange={e=>setHwPageTo(e.target.value)} placeholder="끝 페이지" style={{flex:1}}/>
+                    </div>
+                    <div style={{fontSize:'0.82rem',color:'#888',padding:'2px 4px'}}>선택된 강의: <strong style={{color:'#1a2744'}}>{matchedLectures.length}개</strong></div>
+                    <input className="input" type="date" value={hwDue} onChange={e=>setHwDue(e.target.value)}/>
+                    <input className="input" value={hwNote} onChange={e=>setHwNote(e.target.value)} placeholder="메모 (예: 이번 주까지)"/>
+                    <button className="btn btn-primary" disabled={!hwStudent||matchedLectures.length===0} onClick={async()=>{
+                      await Promise.all(matchedLectures.map(l=>assignHomework(hwStudent, l.id, hwDue, hwNote)));
+                      setHwStudent(''); setHwGrade(''); setHwTextbook(''); setHwPageFrom(''); setHwPageTo(''); setHwDue(''); setHwNote('');
+                      setMsg(`숙제 ${matchedLectures.length}개 지정 완료`); setTimeout(()=>setMsg(''),3000); loadAll();
+                    }}>숙제 지정</button>
+                  </div>
+                );
+              })()}
             </div>
             <div className="card" style={{padding:0,overflow:'hidden'}}>
               <div style={{padding:'12px 16px',borderBottom:'1px solid #f0f0f0',fontWeight:700,color:'#1a2744'}}>현재 숙제 목록</div>
@@ -767,7 +801,6 @@ function StudentDashboard({ student, onLogout }) {
       <div className="container">
         {notice && (
           <div className="notice-bar">
-            <span className="notice-bar-icon">📢</span>
             <span className="notice-bar-text">{notice}</span>
           </div>
         )}
