@@ -316,6 +316,7 @@ function LectureForm({ initial, onSave, onCancel }) {
   const [page, setPage] = useState(initial?.page || '');
   const [title, setTitle] = useState(initial?.title || '');
   const [youtubeId, setYoutubeId] = useState(initial?.youtubeId || '');
+  const [lectureType, setLectureType] = useState(initial?.lectureType || '문제풀이');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [existingTextbooks, setExistingTextbooks] = useState([]);
@@ -331,16 +332,21 @@ function LectureForm({ initial, onSave, onCancel }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!textbook.trim()||!page.trim()||!title.trim()||!youtubeId.trim()) { setError('모든 항목을 입력해주세요'); return; }
+    if (!textbook.trim()||!title.trim()||!youtubeId.trim()||(lectureType==='문제풀이'&&!page.trim())) { setError('모든 항목을 입력해주세요'); return; }
     setLoading(true); setError('');
     try {
-      await onSave({ subject, grade, textbook:textbook.trim(), page:page.trim(), title:title.trim(), youtubeId:youtubeId.trim() });
+      await onSave({ subject, grade, textbook:textbook.trim(), page:page.trim(), title:title.trim(), youtubeId:youtubeId.trim(), lectureType });
     } catch(err) { setError('저장 실패: '+err.message); setLoading(false); }
   }
 
   return (
     <form onSubmit={handleSubmit}>
       {error && <div className="alert alert-error">{error}</div>}
+      <div style={{display:'flex',gap:0,marginBottom:14,border:'1px solid #1a2744',borderRadius:8,overflow:'hidden'}}>
+        {['문제풀이','개념강의'].map(t=>(
+          <button key={t} type="button" style={{flex:1,padding:'8px',border:'none',background:lectureType===t?'#1a2744':'white',color:lectureType===t?'white':'#1a2744',fontWeight:600,fontSize:'0.88rem',cursor:'pointer',outline:'none',borderRight:t==='문제풀이'?'1px solid #1a2744':'none'}} onClick={()=>setLectureType(t)}>{t}</button>
+        ))}
+      </div>
       <div className="form-row">
         <div className="form-group"><label className="label">과목</label>
           <select className="select" value={subject} onChange={e=>handleSubjectChange(e.target.value)}>
@@ -357,9 +363,9 @@ function LectureForm({ initial, onSave, onCancel }) {
           <datalist id="textbook-list">{existingTextbooks.map(t=><option key={t} value={t}/>)}</datalist>
           {existingTextbooks.length>0 && <div style={{fontSize:'0.75rem',color:'#888',marginTop:3}}>기존 교재: {existingTextbooks.join(', ')}</div>}
         </div>
-        <div className="form-group"><label className="label">페이지번호</label><input className="input" value={page} onChange={e=>setPage(e.target.value)} placeholder="예: 42" /></div>
+        <div className="form-group"><label className="label">페이지번호{lectureType==='개념강의'&&<span style={{color:'#aaa',fontWeight:400,fontSize:'0.78rem'}}> (선택)</span>}</label><input className="input" value={page} onChange={e=>setPage(e.target.value)} placeholder="예: 42" /></div>
       </div>
-      <div className="form-group"><label className="label">문제번호</label><input className="input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="문제번호 입력 (예: 3-2번)" /></div>
+      <div className="form-group"><label className="label">{lectureType==='개념강의'?'강의 제목':'문제번호'}</label><input className="input" value={title} onChange={e=>setTitle(e.target.value)} placeholder={lectureType==='개념강의'?'예: 1단원 이차방정식 개념':'문제번호 입력 (예: 3-2번)'} /></div>
       <div className="form-group"><label className="label">YouTube ID</label>
         <input className="input" value={youtubeId} onChange={e=>setYoutubeId(extractYouTubeId(e.target.value))} placeholder="URL 또는 ID 입력" />
         <div style={{fontSize:'0.78rem',color:'#888',marginTop:4}}>유튜브 URL 전체 붙여넣기 OK — ID 자동 추출</div>
@@ -388,6 +394,7 @@ function AdminDashboard({ onLogout }) {
   const [noticeSaved, setNoticeSaved] = useState('');
   const [homework, setHomework] = useState([]);
   const [selectedHomeworkId, setSelectedHomeworkId] = useState(null);
+  const [viewMode, setViewMode] = useState('페이지검색');
   const [hwStudent, setHwStudent] = useState('');
   const [hwSubject, setHwSubject] = useState('수학');
   const [hwGrade, setHwGrade] = useState('');
@@ -776,7 +783,7 @@ function StudentDashboard({ student, onLogout }) {
     setSubject(s); setGrade(null); setTextbook(''); setPageSearch('');
   }
   function handleGrade(g) {
-    setGrade(g); setTextbook(''); setPageSearch('');
+    setGrade(g); setTextbook(''); setPageSearch(''); setViewMode('페이지검색');
     if(!g) return;
     const filtered = lectures.filter(x=>x.subject===subject&&x.grade===g);
     const books = [...new Set(filtered.map(x=>x.textbook))];
@@ -852,6 +859,36 @@ function StudentDashboard({ student, onLogout }) {
           </div>
         )}
 
+        {grade && (
+          <div style={{display:'flex',gap:0,marginBottom:10,border:'1px solid #1a2744',borderRadius:8,overflow:'hidden'}}>
+            {['페이지검색','개념강의'].map(m=>(
+              <button key={m} type="button" style={{flex:1,padding:'8px',border:'none',background:viewMode===m?'#1a2744':'white',color:viewMode===m?'white':'#1a2744',fontWeight:600,fontSize:'0.85rem',cursor:'pointer',outline:'none',borderRight:m==='페이지검색'?'1px solid #1a2744':'none'}} onClick={()=>setViewMode(m)}>{m}</button>
+            ))}
+          </div>
+        )}
+
+        {viewMode==='개념강의' ? (
+          <div>
+            {filteredBySubjectGrade.filter(l=>l.lectureType==='개념강의').length===0
+              ? <div className="empty">개념강의가 없습니다</div>
+              : filteredBySubjectGrade.filter(l=>l.lectureType==='개념강의').map(l=>{
+                  const isDone = completions.find(c=>c.lectureId===l.id);
+                  const doneTime = isDone ? formatDate(isDone.completedAt) : null;
+                  return (
+                    <div key={l.id} className={"lecture-card"+(isDone?' completed':'')} onClick={()=>{setSelectedLecture(l);setSelectedHomeworkId(null);}}>
+                      <div style={{fontSize:'1.5rem'}}>{isDone?'✅':'▶️'}</div>
+                      <div className="lecture-info">
+                        <div className="lecture-title">{l.title}</div>
+                        <div className="lecture-meta">{l.textbook}{l.page?' | '+l.page+'p':''}</div>
+                      </div>
+                      {isDone && <div style={{textAlign:'right'}}><span className="complete-badge">완강</span>{doneTime && <div style={{fontSize:'0.72rem',color:'#27ae60',marginTop:3}}>{doneTime}</div>}</div>}
+                    </div>
+                  );
+                })
+            }
+          </div>
+        ) : (
+          <>
         <div className="search-box">
           <input className="input" value={pageSearch} onChange={e=>setPageSearch(e.target.value)} placeholder="페이지 번호 검색 (예: 42)"/>
           {pageSearch && <button className="btn btn-gray" onClick={()=>setPageSearch('')}>초기화</button>}
@@ -878,6 +915,7 @@ function StudentDashboard({ student, onLogout }) {
            );
          })
         }
+          </>)}
       </div>
         {homework.length>0 && (
           <div style={{background:'white',borderRadius:12,border:'1.5px solid #e0e0e0',overflow:'hidden',marginTop:16}}>
