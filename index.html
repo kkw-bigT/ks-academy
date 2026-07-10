@@ -597,7 +597,8 @@ function StudentDashboard({ student, onLogout }) {
     if (books.length>0) setTextbook(books[0]);
   }
   function handleGrade(g) {
-    setGrade(g); setTextbook(''); setPageSearch('');
+    setGrade(g); setTextbook(''); setPageSearch(''); setTextbooks([]);
+    if(!g) return;
     const filtered = lectures.filter(x=>x.subject===subject&&x.grade===g);
     const books = [...new Set(filtered.map(x=>x.textbook))];
     if (books.length>0) setTextbook(books[0]);
@@ -643,14 +644,21 @@ function StudentDashboard({ student, onLogout }) {
         </div>
 
         <div className="grade-pills">
-          {(subject==='수학' ? [['중1','중2','중3'],['공통수학1','공통수학2'],['대수','미적분1','확통','기하']] : [['중1','중2','중3'],['고1','고2','고3']]).map((group,gi)=>(
-            <React.Fragment key={gi}>
-              {gi>0 && <div style={{width:'100%',height:0}}/>}
-              {group.map(g=>(
-                <button key={g} className={"grade-pill"+(grade===g?' active':'')} onClick={()=>handleGrade(g)}>{g}</button>
-              ))}
-            </React.Fragment>
-          ))}
+          {grade ? (
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <button className="grade-pill active">{grade}</button>
+              <button onClick={()=>handleGrade('')} style={{background:'none',border:'none',color:'#aaa',fontSize:'0.8rem',cursor:'pointer',padding:'2px 6px'}}>✕ 변경</button>
+            </div>
+          ) : (
+            (subject==='수학' ? [['중1','중2','중3'],['공통수학1','공통수학2'],['대수','미적분1','확통','기하']] : [['중1','중2','중3'],['고1','고2','고3']]).map((group,gi)=>(
+              <React.Fragment key={gi}>
+                {gi>0 && <div style={{width:'100%',height:0}}/>}
+                {group.map(g=>(
+                  <button key={g} className="grade-pill" onClick={()=>handleGrade(g)}>{g}</button>
+                ))}
+              </React.Fragment>
+            ))
+          )}
         </div>
 
         {textbooks.length>0 && (
