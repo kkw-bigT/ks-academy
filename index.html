@@ -401,7 +401,7 @@ function AdminDashboard({ onLogout }) {
               </div>
             )}
             {showForm && <div className="card"><h3 style={{marginBottom:16,color:'#1a2744'}}>새 강의 추가</h3><LectureForm onSave={handleAdd} onCancel={()=>setShowForm(false)}/></div>}
-            {editingLecture && <div className="card"><h3 style={{marginBottom:16,color:'#1a2744'}}>강의 수정</h3><LectureForm initial={editingLecture} onSave={handleEdit} onCancel={()=>setEditingLecture(null)}/></div>}
+            {editingLecture && <div className="card"><h3 style={{marginBottom:16,color:'#1a2744'}}>강의 수정</h3><LectureForm key={editingLecture.id} initial={editingLecture} onSave={handleEdit} onCancel={()=>setEditingLecture(null)}/></div>}
             {!showForm && !editingLecture && (
               loading ? <div className="empty">로딩 중...</div> :
               filteredLectures.length===0 ? <div className="empty">강의가 없습니다</div> :
@@ -589,6 +589,7 @@ function StudentDashboard({ student, onLogout }) {
         </div>
 
         {loading ? <div className="empty">로딩 중...</div> :
+         !pageSearch ? <div className="empty">페이지 번호를 검색하세요</div> :
          displayed.length===0 ? <div className="empty">해당 강의가 없습니다</div> :
          displayed.map(l=>{
            const isDone = completions.find(c=>c.lectureId===l.id);
