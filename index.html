@@ -15,12 +15,14 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
 .header-top{background:white;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e0e0e0}
 .header-top img{width:52px;height:52px;border-radius:50%}
 .header-top-right{text-align:right}
-.header-top-right h1{font-size:1.3rem;font-weight:900;color:#1a2744;letter-spacing:2px}
+.header-top-right h1{font-size:1.6rem;font-weight:900;color:#1a2744;letter-spacing:2px}
 .header-top-right p{font-size:0.75rem;color:#888;letter-spacing:1px}
-.header-banner{background:#1a2744;padding:10px 20px;display:flex;align-items:center;justify-content:space-between}
+.header-banner{background:#1a2744;padding:18px 20px;display:flex;align-items:center;justify-content:space-between}
 .header-banner-left span{display:block;font-size:0.7rem;color:rgba(255,255,255,0.6);letter-spacing:2px}
 .header-banner-left strong{display:block;font-size:1.1rem;font-weight:700;color:white}
 .header-banner-right{text-align:right}
+.since2010{color:white;font-weight:700;font-size:0.95rem;position:relative;display:inline-block}
+.since2010::after{content:'';display:block;height:3px;background:#c0392b;margin-top:3px}
 .header-banner-right .slogan{color:white;font-weight:700;font-size:0.95rem;position:relative;display:inline-block}
 .header-banner-right .slogan::after{content:'';display:block;height:3px;background:#c0392b;margin-top:3px}
 .header-user{font-size:0.85rem;color:rgba(255,255,255,0.8)}
@@ -80,9 +82,12 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
 .login-card{background:white;border-radius:20px;padding:40px;width:90%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
 .login-logo{text-align:center;margin-bottom:24px}
 .login-logo img{width:80px;height:80px;border-radius:50%}
-.login-title{text-align:center;color:#1a2744;font-size:1.3rem;font-weight:700;margin-bottom:4px}
+.login-title{text-align:center;color:#1a2744;font-size:1.3rem;font-weight:900;margin-bottom:4px}
 .login-sub{text-align:center;color:#888;font-size:0.85rem;margin-bottom:28px}
 .edit-btns{display:flex;gap:6px}
+.app-footer{text-align:center;padding:32px 0 24px;}
+.app-footer-brand{font-size:0.8rem;color:#aaa;letter-spacing:2px;margin-bottom:4px}
+.app-footer-slogan{font-size:1.1rem;font-weight:900;color:#c0392b;letter-spacing:1px}
 </style>
 </head>
 <body>
@@ -110,12 +115,12 @@ const GRADES = {
   '영어': ['중1','중2','중3','고1','고2','고3']
 };
 
-async function loginStudent(name, phone, attendNum) {
+async function loginStudent(name, attendNum) {
   const q = await db.collection('students')
-    .where('name','==',name).where('phone','==',phone).where('attendNum','==',attendNum).get();
+    .where('name','==',name).where('attendNum','==',attendNum).get();
   if (!q.empty) return { id: q.docs[0].id, ...q.docs[0].data() };
-  const ref = await db.collection('students').add({ name, phone, attendNum, createdAt: new Date() });
-  return { id: ref.id, name, phone, attendNum };
+  const ref = await db.collection('students').add({ name, attendNum, createdAt: new Date() });
+  return { id: ref.id, name, attendNum };
 }
 async function getLectures() {
   const snap = await db.collection('lectures').get();
@@ -152,6 +157,12 @@ function Header({ user, onLogout }) {
     <div>
       <div className="header-top">
         <img src={LOGO_URL} alt="KS EDU" />
+        {user && (
+          <div style={{display:'flex',alignItems:'center',gap:10,marginLeft:'auto',marginRight:12}}>
+            <span style={{fontSize:'0.85rem',color:'#555'}}>{user.name} 학생</span>
+            <button className="btn btn-gray btn-sm" onClick={onLogout}>로그아웃</button>
+          </div>
+        )}
         <div className="header-top-right">
           <h1>KS_ACADEMY</h1>
           <p>middle · high school</p>
@@ -163,14 +174,7 @@ function Header({ user, onLogout }) {
           <strong>강의 영상 학습 시스템</strong>
         </div>
         <div className="header-banner-right">
-          {user ? (
-            <div style={{display:'flex',alignItems:'center',gap:12}}>
-              <span className="header-user">{user.name} 학생</span>
-              <button className="btn btn-gray btn-sm" onClick={onLogout}>로그아웃</button>
-            </div>
-          ) : (
-            <span className="slogan">관리가 답이다!</span>
-          )}
+          <span className="since2010">since 2010</span>
         </div>
       </div>
     </div>
@@ -180,7 +184,6 @@ function Header({ user, onLogout }) {
 function LoginPage({ onLogin, onAdminLogin }) {
   const [tab, setTab] = useState('student');
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
   const [attendNum, setAttendNum] = useState('');
   const [adminPw, setAdminPw] = useState('');
   const [loading, setLoading] = useState(false);
@@ -188,10 +191,10 @@ function LoginPage({ onLogin, onAdminLogin }) {
 
   async function handleStudentLogin(e) {
     e.preventDefault();
-    if (!name.trim() || !phone.trim() || !attendNum.trim()) { setError('모든 항목을 입력해주세요'); return; }
+    if (!name.trim() || !attendNum.trim()) { setError('이름과 출결번호를 입력해주세요'); return; }
     setLoading(true); setError('');
     try {
-      const student = await loginStudent(name.trim(), phone.trim(), attendNum.trim());
+      const student = await loginStudent(name.trim(), attendNum.trim());
       onLogin(student);
     } catch(err) { setError('로그인 실패: ' + err.message); }
     setLoading(false);
@@ -217,7 +220,7 @@ function LoginPage({ onLogin, onAdminLogin }) {
         {tab==='student' ? (
           <form onSubmit={handleStudentLogin}>
             <div className="form-group"><label className="label">이름</label><input className="input" value={name} onChange={e=>setName(e.target.value)} placeholder="이름 입력" /></div>
-            <div className="form-group"><label className="label">전화번호</label><input className="input" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="010-0000-0000" /></div>
+
             <div className="form-group"><label className="label">출결번호</label><input className="input" value={attendNum} onChange={e=>setAttendNum(e.target.value)} placeholder="출결번호 입력" /></div>
             <button className="btn btn-primary" style={{width:'100%'}} disabled={loading}>{loading ? <span className="spinner"/> : '로그인'}</button>
           </form>
@@ -282,7 +285,7 @@ function LectureForm({ initial, onSave, onCancel }) {
         </div>
         <div className="form-group"><label className="label">페이지번호</label><input className="input" value={page} onChange={e=>setPage(e.target.value)} placeholder="예: 42" /></div>
       </div>
-      <div className="form-group"><label className="label">강의 제목</label><input className="input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="강의 제목 입력" /></div>
+      <div className="form-group"><label className="label">문제번호</label><input className="input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="문제번호 입력 (예: 3-2번)" /></div>
       <div className="form-group"><label className="label">YouTube ID</label>
         <input className="input" value={youtubeId} onChange={e=>setYoutubeId(e.target.value)} placeholder="예: dQw4w9WgXcQ" />
         <div style={{fontSize:'0.78rem',color:'#888',marginTop:4}}>유튜브 URL에서 v= 뒤의 ID만 입력</div>
@@ -410,6 +413,10 @@ function AdminDashboard({ onLogout }) {
           </div>
         )}
       </div>
+      <div className="app-footer">
+        <div className="app-footer-brand">KS EDU GROUP</div>
+        <div className="app-footer-slogan">관리가 답이다!</div>
+      </div>
     </div>
   );
 }
@@ -431,7 +438,7 @@ function VideoModal({ lecture, completed, onComplete, onClose }) {
         </div>
         <div className="modal-body">
           <div className="video-container">
-            <iframe src={"https://www.youtube.com/embed/"+lecture.youtubeId+"?rel=0"} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
+            <iframe src={"https://www.youtube.com/embed/"+lecture.youtubeId.trim()+"?rel=0"} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
           </div>
         </div>
         <div className="modal-footer">
@@ -517,8 +524,13 @@ function StudentDashboard({ student, onLogout }) {
         </div>
 
         <div className="grade-pills">
-          {GRADES[subject].map(g=>(
-            <button key={g} className={"grade-pill"+(grade===g?' active':'')} onClick={()=>handleGrade(g)}>{g}</button>
+          {(subject==='수학' ? [['중1','중2','중3'],['공통수학1','공통수학2'],['대수','미적분1','확통','기하']] : [['중1','중2','중3'],['고1','고2','고3']]).map((group,gi)=>(
+            <React.Fragment key={gi}>
+              {gi>0 && <div style={{width:'100%',height:0}}/>}
+              {group.map(g=>(
+                <button key={g} className={"grade-pill"+(grade===g?' active':'')} onClick={()=>handleGrade(g)}>{g}</button>
+              ))}
+            </React.Fragment>
           ))}
         </div>
 
@@ -551,6 +563,10 @@ function StudentDashboard({ student, onLogout }) {
            );
          })
         }
+      </div>
+      <div className="app-footer">
+        <div className="app-footer-brand">KS EDU GROUP</div>
+        <div className="app-footer-slogan">관리가 답이다!</div>
       </div>
       {selectedLecture && (
         <VideoModal lecture={selectedLecture} completed={completions.includes(selectedLecture.id)} onComplete={handleComplete} onClose={()=>setSelectedLecture(null)}/>
