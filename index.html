@@ -888,7 +888,7 @@ function StudentDashboard({ student, onLogout }) {
             }
           </div>
         ) : (
-          <>
+          <React.Fragment>
         <div className="search-box">
           <input className="input" value={pageSearch} onChange={e=>setPageSearch(e.target.value)} placeholder="페이지 번호 검색 (예: 42)"/>
           {pageSearch && <button className="btn btn-gray" onClick={()=>setPageSearch('')}>초기화</button>}
@@ -915,7 +915,7 @@ function StudentDashboard({ student, onLogout }) {
            );
          })
         }
-          </>)}
+          </React.Fragment>)}
       </div>
         {homework.length>0 && (
           <div style={{background:'white',borderRadius:12,border:'1.5px solid #e0e0e0',overflow:'hidden',marginTop:16}}>
