@@ -14,15 +14,15 @@
 body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0f2f5;min-height:100vh}
 .header-top{background:white;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e0e0e0}
 .header-top img{width:52px;height:52px;border-radius:50%}
-.header-top-right{text-align:right}
-.header-top-right h1{font-size:1.6rem;font-weight:900;color:#1a2744;letter-spacing:2px;font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;-webkit-text-stroke:0.5px #1a2744}
-.header-top-right p{font-size:0.75rem;color:#888;letter-spacing:1px}
-.header-banner{background:#1a2744;padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
+.header-top-right{text-align:right;align-self:flex-end;padding-bottom:2px}
+.header-top-right h1{font-size:1.45rem;font-weight:900;color:#1a2744;letter-spacing:1px;font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;-webkit-text-stroke:0.5px #1a2744}
+.header-top-right p{font-size:0.72rem;color:#888;letter-spacing:1px;margin-top:5px}
+.header-banner{background:#1a2744;padding:22px 20px;display:flex;align-items:flex-end;justify-content:space-between}
 .header-banner-left span{display:block;font-size:1.0rem;color:rgba(255,255,255,0.6);letter-spacing:2px}
-.header-banner-left strong{display:block;font-size:1.15rem;font-weight:700;color:white}
+.header-banner-left strong{display:block;font-size:1.38rem;font-weight:700;color:white}
 .header-banner-right{text-align:right}
-.since2010{color:white;font-weight:700;font-size:1.4rem;position:relative;display:inline-block}
-.since2010::after{content:'';display:block;height:3px;background:#c0392b;margin-top:3px}
+.since2010{color:rgba(255,255,255,0.6);font-weight:700;font-size:0.95rem;letter-spacing:2px;display:inline-block}
+.since2010::before{content:'';display:block;height:3px;background:#c0392b;margin-bottom:4px;border-radius:2px}
 .header-banner-right .slogan{color:white;font-weight:700;font-size:0.95rem;position:relative;display:inline-block}
 .header-banner-right .slogan::after{content:'';display:block;height:3px;background:#c0392b;margin-top:3px}
 .header-user{font-size:0.85rem;color:rgba(255,255,255,0.8)}
@@ -96,7 +96,7 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
 .confetti-p{position:absolute;width:8px;height:8px;border-radius:50%;animation:fall 1.5s ease-in forwards}
 @keyframes popIn{0%{transform:scale(0);opacity:0}60%{transform:scale(1.3)}100%{transform:scale(1);opacity:1}}
 @keyframes fall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
-.notice-bar{background:white;border:1.5px solid #c0392b;border-radius:10px;color:#222;padding:10px 16px;display:flex;align-items:center;gap:10px;font-size:0.88rem;margin-bottom:4px;box-shadow:0 1px 4px rgba(192,57,43,0.08)}
+.notice-bar{background:white;border:none;border-bottom:3px solid #c0392b;border-radius:8px 8px 0 0;color:#222;padding:10px 16px;display:flex;align-items:center;gap:10px;font-size:0.92rem;margin-bottom:4px}
 .notice-bar-icon{flex-shrink:0;display:flex;align-items:center}
 .notice-bar-text{flex:1;color:#333;font-weight:500}
 </style>
