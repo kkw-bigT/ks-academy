@@ -635,7 +635,6 @@ function AdminDashboard({ onLogout }) {
                })}
             </div>
           </div>
-        </div>
         )}
 
       </div>
@@ -719,7 +718,6 @@ function StudentDashboard({ student, onLogout }) {
   const [subject, setSubject] = useState('수학');
   const [grade, setGrade] = useState(GRADES['수학'][0]);
   const [textbook, setTextbook] = useState('');
-  const [textbooks, setTextbooks] = useState([]);
   const [pageSearch, setPageSearch] = useState('');
   const [selectedLecture, setSelectedLecture] = useState(null);
   const [notice, setNoticeText] = useState('');
@@ -744,7 +742,7 @@ function StudentDashboard({ student, onLogout }) {
     if (books.length>0) setTextbook(books[0]);
   }
   function handleGrade(g) {
-    setGrade(g); setTextbook(''); setPageSearch(''); setTextbooks([]);
+    setGrade(g); setTextbook(''); setPageSearch('');
     if(!g) return;
     const filtered = lectures.filter(x=>x.subject===subject&&x.grade===g);
     const books = [...new Set(filtered.map(x=>x.textbook))];
@@ -878,8 +876,6 @@ function StudentDashboard({ student, onLogout }) {
            );
          })
         }
-          </div>
-        )}
       </div>
       <div className="app-footer">
         <div className="app-footer-brand">KS EDU GROUP</div>
