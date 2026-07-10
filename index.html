@@ -671,6 +671,38 @@ function AdminDashboard({ onLogout }) {
           </div>
         )}
 
+        {homework.length>0 && (
+          <div style={{background:'white',borderRadius:12,border:'1.5px solid #e0e0e0',overflow:'hidden',marginTop:16}}>
+            <div style={{background:'#A02020',padding:'11px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <span style={{color:'white',fontSize:'0.9rem',fontWeight:700}}>숙제</span>
+                {(()=>{const cnt=homework.filter(h=>{const ht=h.assignedAt?.toMillis?h.assignedAt.toMillis():(h.assignedAt?new Date(h.assignedAt).getTime():0);return !completions.find(c=>c.lectureId===h.lectureId&&c.completedAt?.toMillis&&c.completedAt.toMillis()>ht);}).length;return cnt>0&&<span style={{background:'white',color:'#A02020',borderRadius:'50%',width:19,height:19,fontSize:'0.65rem',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700}}>{cnt}</span>;})()}
+              </div>
+              <span style={{color:'rgba(255,255,255,0.75)',fontSize:'0.75rem'}}>
+                {(()=>{const cnt=homework.filter(h=>{const ht=h.assignedAt?.toMillis?h.assignedAt.toMillis():(h.assignedAt?new Date(h.assignedAt).getTime():0);return !completions.find(c=>c.lectureId===h.lectureId&&c.completedAt?.toMillis&&c.completedAt.toMillis()>ht);}).length;return `미완료 ${cnt}개`;})()}
+              </span>
+            </div>
+            <div style={{padding:12,display:'flex',flexDirection:'column',gap:8}}>
+              {homework.map(hw=>{
+                const lec=lectures.find(l=>l.id===hw.lectureId);
+                if(!lec) return null;
+                const hwTime=hw.assignedAt?.toMillis?hw.assignedAt.toMillis():(hw.assignedAt?new Date(hw.assignedAt).getTime():0);
+                const isDone=!!completions.find(c=>c.lectureId===hw.lectureId&&c.completedAt?.toMillis&&c.completedAt.toMillis()>hwTime);
+                const due=hw.dueDate?new Date(hw.dueDate):null;
+                const isOverdue=due&&!isDone&&due<new Date();
+                return (
+                  <div key={hw.id} style={{border:`1.5px solid ${isDone?'#27ae60':isOverdue?'#A02020':'#1a2744'}`,borderRadius:8,padding:'10px 13px',background:'white',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}} onClick={()=>setSelectedLecture(lec)}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:'0.85rem',color:'#222',marginBottom:3}}>{lec.textbook} {lec.page}p — {lec.title}</div>
+                      <div style={{fontSize:'0.72rem',color:isOverdue?'#A02020':'#888'}}>{lec.subject} | {lec.grade}{due?` · ${isOverdue?'⚠️ 기한초과 ':'마감 '}${due.toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})}`:''}</div>
+                    </div>
+                    {isDone?<span style={{background:'#27ae60',color:'white',padding:'3px 10px',borderRadius:6,fontSize:'0.73rem',fontWeight:700,whiteSpace:'nowrap',marginLeft:8}}>완강 ✓</span>:<span style={{color:'#1a2744',fontWeight:700,fontSize:'0.82rem',whiteSpace:'nowrap',marginLeft:8}}>▶ 보기</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
       <div className="app-footer">
         <div className="app-footer-brand">KS EDU GROUP</div>
@@ -755,7 +787,7 @@ function StudentDashboard({ student, onLogout }) {
   const [pageSearch, setPageSearch] = useState('');
   const [selectedLecture, setSelectedLecture] = useState(null);
   const [notice, setNoticeText] = useState('');
-  const [studentTab, setStudentTab] = useState('강의');
+
   const [homework, setHomework] = useState([]);
 
   useEffect(()=>{ loadData(); },[]);
@@ -810,48 +842,11 @@ function StudentDashboard({ student, onLogout }) {
           <span style={{color:'#bbb',fontSize:'0.9rem'}}>{student.name} 학생</span>
         </div>
 
-        <div style={{display:'flex',gap:8,marginBottom:12}}>
-          <button className={"subject-tab"+(studentTab==='강의'?' active':'')} style={{flex:1}} onClick={()=>setStudentTab('강의')}>강의 보기</button>
-          <button className={"subject-tab"+(studentTab==='숙제'?' active':'')} style={{flex:1,position:'relative'}} onClick={()=>setStudentTab('숙제')}>
-            숙제
-            {homework.filter(h=>!completions.find(c=>c.lectureId===h.lectureId)).length>0 && (
-              <span style={{position:'absolute',top:-4,right:-4,background:'#c0392b',color:'white',borderRadius:'50%',width:18,height:18,fontSize:'0.7rem',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700}}>
-                {homework.filter(h=>!completions.find(c=>c.lectureId===h.lectureId)).length}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {studentTab==='숙제' && (
-          <div>
-            {homework.length===0 ? (
-              <div className="empty">지정된 숙제가 없습니다</div>
-            ) : homework.map(hw=>{
-              const lec = lectures.find(l=>l.id===hw.lectureId);
-              if(!lec) return null;
-              const isDone = !!completions.find(c=>c.lectureId===hw.lectureId);
-              const due = hw.dueDate ? new Date(hw.dueDate) : null;
-              const isOverdue = due && !isDone && due < new Date();
-              return (
-                <div key={hw.id} className="lecture-card" style={{borderColor: isDone?'#27ae60': isOverdue?'#c0392b':'#1a2744', background: isDone?'#f0fff4': isOverdue?'#fff5f5':'white'}}
-                  onClick={()=>setSelectedLecture(lec)}>
-                  <div className="lecture-info">
-                    <div className="lecture-title">{lec.textbook} {lec.page}p — {lec.title}</div>
-                    <div className="lecture-meta">{lec.subject} | {lec.grade}{hw.note ? ' | '+hw.note : ''}</div>
-                    {due && <div style={{fontSize:'0.78rem',color: isOverdue?'#c0392b':'#888',marginTop:2}}>마감: {due.toLocaleDateString('ko-KR')}{isOverdue?' ⚠️ 기한초과':''}</div>}
-                  </div>
-                  {isDone ? <span className="complete-badge">완강 ✓</span> : <span style={{color:'#1a2744',fontWeight:700,fontSize:'0.85rem'}}>▶ 보기</span>}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {studentTab==='강의' && <div className="subject-tabs">
+        <div className="subject-tabs">
           {Object.keys(GRADES).map(s=>(
             <button key={s} className={"subject-tab"+(subject===s?' active':'')} onClick={()=>handleSubject(s)}>{s}</button>
           ))}
-        </div>}
+        </div>
 
         <div className="grade-pills">
           {grade ? (
