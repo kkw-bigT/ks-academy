@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KS EDU GROUP - 강의 영상</title>
+<script src="https://www.youtube.com/iframe_api"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -93,6 +94,11 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
 <body>
 <div id="root"></div>
 <script>
+// YouTube play time tracker
+window._ytPlayers = {};
+window._ytPlayData = {}; // { startedAt, totalPlayMs, lastPlayStart }
+</script>
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyDML8GJenEjNWvUjx2xZ0k5v23Xyva8_8I",
   authDomain: "ks-academy-70c9d.firebaseapp.com",
@@ -136,12 +142,25 @@ async function updateLecture(id, data) { return await db.collection('lectures').
 async function deleteLecture(id) { return await db.collection('lectures').doc(id).delete(); }
 async function getStudentCompletions(studentId) {
   const snap = await db.collection('completions').where('studentId','==',studentId).get();
-  return snap.docs.map(d => d.data().lectureId);
+  return snap.docs.map(d => ({ lectureId: d.data().lectureId, completedAt: d.data().completedAt }));
 }
-async function markComplete(studentId, lectureId) {
+
+function formatDate(ts) {
+  if (!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+async function markComplete(studentId, lectureId, playData) {
   const q = await db.collection('completions')
     .where('studentId','==',studentId).where('lectureId','==',lectureId).get();
-  if (q.empty) await db.collection('completions').add({ studentId, lectureId, completedAt: new Date() });
+  const data = {
+    studentId, lectureId,
+    completedAt: new Date(),
+    startedAt: playData?.startedAt || null,
+    playSeconds: playData?.playSeconds || 0,
+    totalSeconds: playData?.totalSeconds || 0
+  };
+  if (q.empty) await db.collection('completions').add(data);
 }
 async function getAllStudents() {
   const snap = await db.collection('students').orderBy('attendNum').get();
@@ -158,9 +177,9 @@ function Header({ user, onLogout }) {
       <div className="header-top">
         <img src={LOGO_URL} alt="KS EDU" />
         {user && (
-          <div style={{display:'flex',alignItems:'center',gap:10,marginLeft:'auto',marginRight:12}}>
-            <span style={{fontSize:'0.85rem',color:'#555'}}>{user.name} 학생</span>
-            <button className="btn btn-gray btn-sm" onClick={onLogout}>로그아웃</button>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,marginLeft:'auto',marginRight:8}}>
+            <span style={{fontSize:'0.72rem',color:'#555',whiteSpace:'nowrap'}}>{user.name} 학생</span>
+            <button className="btn btn-gray" style={{padding:'3px 10px',fontSize:'0.72rem'}} onClick={onLogout}>로그아웃</button>
           </div>
         )}
         <div className="header-top-right">
@@ -424,9 +443,57 @@ function AdminDashboard({ onLogout }) {
 function VideoModal({ lecture, completed, onComplete, onClose }) {
   const [marking, setMarking] = useState(false);
   const [done, setDone] = useState(completed);
+  const [playInfo, setPlayInfo] = useState('');
+  const playerRef = React.useRef(null);
+  const playDataRef = React.useRef({ startedAt: null, totalPlayMs: 0, lastPlayStart: null, totalSeconds: 0 });
+  const containerId = 'yt-player-' + lecture.id;
+
+  React.useEffect(() => {
+    function createPlayer() {
+      if (!window.YT || !window.YT.Player) { setTimeout(createPlayer, 300); return; }
+      playerRef.current = new window.YT.Player(containerId, {
+        videoId: lecture.youtubeId.trim(),
+        playerVars: { rel: 0, modestbranding: 1 },
+        events: {
+          onReady: (e) => {
+            const dur = e.target.getDuration();
+            playDataRef.current.totalSeconds = Math.round(dur);
+          },
+          onStateChange: (e) => {
+            const now = new Date();
+            if (e.data === 1) { // PLAYING
+              if (!playDataRef.current.startedAt) playDataRef.current.startedAt = now;
+              playDataRef.current.lastPlayStart = now;
+            } else if (e.data === 2 || e.data === 0) { // PAUSED or ENDED
+              if (playDataRef.current.lastPlayStart) {
+                playDataRef.current.totalPlayMs += (now - playDataRef.current.lastPlayStart);
+                playDataRef.current.lastPlayStart = null;
+                const secs = Math.round(playDataRef.current.totalPlayMs / 1000);
+                const tot = playDataRef.current.totalSeconds;
+                const fmt = s => Math.floor(s/60)+'분'+(s%60>0?' '+s%60+'초':'');
+                setPlayInfo(tot > 0 ? fmt(secs)+' / 전체 '+fmt(tot)+' 재생' : fmt(secs)+' 재생');
+              }
+            }
+          }
+        }
+      });
+    }
+    createPlayer();
+    return () => { if (playerRef.current) { try { playerRef.current.destroy(); } catch(e){} } };
+  }, []);
 
   async function handleComplete() {
-    setMarking(true); await onComplete(lecture.id); setDone(true); setMarking(false);
+    setMarking(true);
+    if (playDataRef.current.lastPlayStart) {
+      playDataRef.current.totalPlayMs += (new Date() - playDataRef.current.lastPlayStart);
+    }
+    const playData = {
+      startedAt: playDataRef.current.startedAt,
+      playSeconds: Math.round(playDataRef.current.totalPlayMs / 1000),
+      totalSeconds: playDataRef.current.totalSeconds
+    };
+    await onComplete(lecture.id, playData);
+    setDone(true); setMarking(false);
   }
 
   return (
@@ -438,11 +505,14 @@ function VideoModal({ lecture, completed, onComplete, onClose }) {
         </div>
         <div className="modal-body">
           <div className="video-container">
-            <iframe src={"https://www.youtube.com/embed/"+lecture.youtubeId.trim()+"?rel=0"} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
+            <div id={containerId}></div>
           </div>
         </div>
         <div className="modal-footer">
-          <div style={{fontSize:'0.85rem',color:'#666'}}>{lecture.subject} | {lecture.grade} | {lecture.textbook} | {lecture.page}p</div>
+          <div>
+            <div style={{fontSize:'0.85rem',color:'#666'}}>{lecture.subject} | {lecture.grade} | {lecture.textbook} | {lecture.page}p</div>
+            {playInfo && <div style={{fontSize:'0.78rem',color:'#27ae60',marginTop:3}}>▶ {playInfo}</div>}
+          </div>
           {done ? <span className="complete-badge">완강</span> :
            <button className="btn btn-success" onClick={handleComplete} disabled={marking}>{marking?<span className="spinner"/>:'완강 체크'}</button>}
         </div>
@@ -466,7 +536,7 @@ function StudentDashboard({ student, onLogout }) {
   async function loadData() {
     setLoading(true);
     const [l,c] = await Promise.all([getLectures(), getStudentCompletions(student.id)]);
-    setLectures(l); setCompletions(c); setLoading(false);
+    setLectures(l); setCompletions(c); setLoading(false);  // c = [{lectureId, completedAt}]
     const filtered = l.filter(x=>x.subject==='수학'&&x.grade===GRADES['수학'][0]);
     const books = [...new Set(filtered.map(x=>x.textbook))];
     if (books.length>0) setTextbook(books[0]);
@@ -493,12 +563,13 @@ function StudentDashboard({ student, onLogout }) {
     return true;
   });
 
-  async function handleComplete(lectureId) {
-    await markComplete(student.id, lectureId);
-    setCompletions(prev=>[...new Set([...prev,lectureId])]);
+  async function handleComplete(lectureId, playData) {
+    await markComplete(student.id, lectureId, playData);
+    const completedAt = firebase.firestore.Timestamp.now();
+    setCompletions(prev=>[...prev.filter(c=>c.lectureId!==lectureId), {lectureId, completedAt, playData}]);
   }
 
-  const doneCount = completions.length;
+  const doneCount = completions.length; // completions = [{lectureId,completedAt}]
   const totalCount = lectures.length;
 
   return (
@@ -550,7 +621,8 @@ function StudentDashboard({ student, onLogout }) {
         {loading ? <div className="empty">로딩 중...</div> :
          displayed.length===0 ? <div className="empty">해당 강의가 없습니다</div> :
          displayed.map(l=>{
-           const isDone = completions.includes(l.id);
+           const isDone = completions.find(c=>c.lectureId===l.id);
+             const doneTime = isDone ? formatDate(isDone.completedAt) : null;
            return (
              <div key={l.id} className={"lecture-card"+(isDone?' completed':'')} onClick={()=>setSelectedLecture(l)}>
                <div style={{fontSize:'1.5rem'}}>{isDone?'✅':'▶️'}</div>
@@ -558,7 +630,10 @@ function StudentDashboard({ student, onLogout }) {
                  <div className="lecture-title">{l.title}</div>
                  <div className="lecture-meta">{l.textbook} | {l.page}p</div>
                </div>
-               {isDone && <span className="complete-badge">완강</span>}
+               {isDone && <div style={{textAlign:'right'}}>
+                 <span className="complete-badge">완강</span>
+                 {doneTime && <div style={{fontSize:'0.72rem',color:'#27ae60',marginTop:3}}>{doneTime}</div>}
+               </div>}
              </div>
            );
          })
@@ -569,7 +644,7 @@ function StudentDashboard({ student, onLogout }) {
         <div className="app-footer-slogan">관리가 답이다!</div>
       </div>
       {selectedLecture && (
-        <VideoModal lecture={selectedLecture} completed={completions.includes(selectedLecture.id)} onComplete={handleComplete} onClose={()=>setSelectedLecture(null)}/>
+        <VideoModal lecture={selectedLecture} completed={!!completions.find(c=>c.lectureId===selectedLecture.id)} onComplete={handleComplete} onClose={()=>setSelectedLecture(null)}/>
       )}
     </div>
   );
