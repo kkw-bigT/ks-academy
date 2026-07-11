@@ -391,6 +391,8 @@ function AdminDashboard({ onLogout }) {
   const [showAllLectures, setShowAllLectures] = useState(false);
   const [msg, setMsg] = useState('');
   const [expandedStudent, setExpandedStudent] = useState(null);
+  const [studentSearch, setStudentSearch] = useState('');
+  const [studentGradeFilter, setStudentGradeFilter] = useState('전체');
   const [noticeInput, setNoticeInput] = useState('');
   const [noticeSaved, setNoticeSaved] = useState('');
   const [homework, setHomework] = useState([]);
@@ -440,7 +442,20 @@ function AdminDashboard({ onLogout }) {
 
   function exportCSV() {
     const rows = [['학생이름','출결번호','과목','학년','교재','페이지','문제번호','완강일시','시청시간(초)']];
-    completions.forEach(c=>{
+    const gradeOrder = ['중1','중2','중3','공통수학1','공통수학2','대수','미적분1','확통','기하','고1','고2','고3'];
+    const sortedComps = [...completions].sort((a,b)=>{
+      const sa=students.find(x=>x.id===a.studentId); const sb=students.find(x=>x.id===b.studentId);
+      const la=lectures.find(x=>x.id===a.lectureId); const lb=lectures.find(x=>x.id===b.lectureId);
+      if(!sa||!sb||!la||!lb) return 0;
+      const gi=(gradeOrder.indexOf(la.grade)+1||99)-(gradeOrder.indexOf(lb.grade)+1||99);
+      if(gi!==0) return gi;
+      const ni=sa.name.localeCompare(sb.name,'ko');
+      if(ni!==0) return ni;
+      const ta=a.completedAt?.toDate?a.completedAt.toDate():new Date(a.completedAt||0);
+      const tb=b.completedAt?.toDate?b.completedAt.toDate():new Date(b.completedAt||0);
+      return ta-tb;
+    });
+    sortedComps.forEach(c=>{
       const s = students.find(x=>x.id===c.studentId);
       const l = lectures.find(x=>x.id===c.lectureId);
       if(!s||!l) return;
@@ -521,10 +536,28 @@ function AdminDashboard({ onLogout }) {
 
         {tab==='students' && (
           <div>
+            <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
+              <input className="input" style={{flex:1,minWidth:120}} placeholder="이름 검색..." value={studentSearch} onChange={e=>setStudentSearch(e.target.value)}/>
+              <select className="select" style={{width:'auto'}} value={studentGradeFilter} onChange={e=>setStudentGradeFilter(e.target.value)}>
+                {['전체',...['중1','중2','중3','공통수학1','공통수학2','대수','미적분1','확통','기하','고1','고2','고3']].map(g=><option key={g}>{g}</option>)}
+              </select>
+            </div>
             {loading ? <div className="empty">로딩 중...</div> :
              students.length===0 ? <div className="empty">학생이 없습니다</div> :
-             <div className="card" style={{padding:0,overflow:'hidden'}}>
-               {students.map(s=>{
+             (()=>{
+               const gradeOrder=['중1','중2','중3','공통수학1','공통수학2','대수','미적분1','확통','기하','고1','고2','고3'];
+               const filteredStudents = students.filter(s=>{
+                 if(studentSearch && !s.name.includes(studentSearch)) return false;
+                 if(studentGradeFilter!=='전체'){
+                   const hasGrade = completions.some(c=>c.studentId===s.id && lectures.find(l=>l.id===c.lectureId&&l.grade===studentGradeFilter));
+                   if(!hasGrade) return false;
+                 }
+                 return true;
+               }).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+               if(filteredStudents.length===0) return <div className="empty">검색 결과가 없습니다</div>;
+               return (
+               <div className="card" style={{padding:0,overflow:'hidden'}}>
+               {filteredStudents.map(s=>{
                  const {done,total,pct}=getProgress(s.id);
                  const expanded = expandedStudent===s.id;
                  const studentComps = completions.filter(c=>c.studentId===s.id)
@@ -591,6 +624,8 @@ function AdminDashboard({ onLogout }) {
                  );
                })}
              </div>
+               );
+             })()
             }
           </div>
         )}
