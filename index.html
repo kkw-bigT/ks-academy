@@ -157,6 +157,11 @@ async function getLectures() {
     return String(a.page).localeCompare(String(b.page), undefined, {numeric: true});
   });
 }
+async function getLecturesBySubject(subject) {
+  const snap = await db.collection('lectures').where('subject','==',subject).get();
+  const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return docs.sort((a,b)=>{ if(a.grade!==b.grade) return 0; return (parseInt(a.page)||0)-(parseInt(b.page)||0); });
+}
 async function addLecture(data) { return await db.collection('lectures').add({ ...data, createdAt: new Date() }); }
 async function updateLecture(id, data) { return await db.collection('lectures').doc(id).update(data); }
 async function deleteLecture(id) { return await db.collection('lectures').doc(id).delete(); }
@@ -386,6 +391,12 @@ function LectureForm({ initial, onSave, onCancel }) {
       <div className="form-group"><label className="label">YouTube ID</label>
         <input className="input" value={youtubeId} onChange={e=>setYoutubeId(extractYouTubeId(e.target.value))} placeholder="URL 또는 ID 입력" />
         <div style={{fontSize:'0.78rem',color:'#888',marginTop:4}}>유튜브 URL 전체 붙여넣기 OK — ID 자동 추출</div>
+        {youtubeId && youtubeId.length===11 && (
+          <div style={{marginTop:8,borderRadius:8,overflow:'hidden',border:'1px solid #e0e0e0'}}>
+            <img src={`https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`} alt="썸네일" style={{width:'100%',display:'block'}}
+              onError={e=>{e.target.parentElement.innerHTML='<div style="padding:8px;color:#aaa;fontSize:0.8rem;textAlign:center">썸네일 없음</div>';}}/>
+          </div>
+        )}
       </div>
       <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
         <button type="button" className="btn btn-gray" onClick={onCancel}>취소</button>
@@ -927,17 +938,18 @@ function StudentDashboard({ student, onLogout }) {
   const [selectedHomeworkId, setSelectedHomeworkId] = useState(null);
   const [viewMode, setViewMode] = useState('페이지검색');
 
-  useEffect(()=>{ loadData(); },[]);
+  useEffect(()=>{ loadData(); getLecturesBySubject(subject).then(setLectures); },[]);
 
   async function loadData() {
     setLoading(true);
-    const [l,c,n,hw] = await Promise.all([getLectures(), getStudentCompletions(student.id), getNotice(), getHomework(student.id)]);
-    setLectures(l); setCompletions(c); setNoticeText(n); setHomework(hw); setLoading(false);  // c = [{lectureId, completedAt}]
+    const [c,n,hw] = await Promise.all([getStudentCompletions(student.id), getNotice(), getHomework(student.id)]);
+    setCompletions(c); setNoticeText(n); setHomework(hw); setLoading(false);  // c = [{lectureId, completedAt}]
 
   }
 
   function handleSubject(s) {
-    setSubject(s); setGrade(null); setTextbook(''); setPageSearch('');
+    setSubject(s); setGrade(null); setTextbook(''); setPageSearch(''); setLectures([]);
+    getLecturesBySubject(s).then(setLectures);
   }
   function handleGrade(g) {
     setGrade(g); setTextbook(''); setPageSearch(''); setViewMode('페이지검색');
