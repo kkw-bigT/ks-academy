@@ -41,7 +41,7 @@ html{background:#1a2744}body{font-family:'Malgun Gothic','Apple SD Gothic Neo',s
 .input:focus{border-color:#1a2744}
 .label{display:block;margin-bottom:6px;font-weight:600;color:#333;font-size:0.9rem}
 .tab-bar{display:flex;gap:4px;margin-bottom:12px;background:#f0f2f5;padding:3px;border-radius:8px}
-.tab{flex:1;padding:5px 3px;text-align:center;border:none;background:transparent;cursor:pointer;border-radius:6px;font-weight:600;color:#666;transition:all 0.2s;outline:none;font-size:0.76rem;white-space:nowrap}
+.tab{flex:1;padding:5px 3px;text-align:center;border:none;background:transparent;cursor:pointer;border-radius:6px;font-weight:400;color:#666;transition:all 0.2s;outline:none;font-size:0.76rem;white-space:nowrap}
 .tab.active{background:white;color:#1a2744;box-shadow:0 2px 6px rgba(0,0,0,0.1);outline:none}
 .subject-tabs{display:flex;gap:0;margin-bottom:12px;border:1px solid #1a2744;border-radius:10px;overflow:hidden;width:100%}
 .subject-tab{padding:10px 0;border:none;border-right:1px solid #1a2744;background:white;color:#1a2744;cursor:pointer;font-weight:600;font-size:0.9rem;transition:all 0.2s;outline:none;flex:1;text-align:center;letter-spacing:1px}
@@ -519,18 +519,18 @@ function AdminDashboard({ onLogout }) {
           const overdueHw = homework.filter(h=>{if(h.completedAt)return false;if(!h.dueDate)return false;return new Date(h.dueDate)<today;}).length;
           const pendingHw = homework.filter(h=>!h.completedAt).length;
           return (
-            <div style={{display:'flex',gap:10,marginBottom:14,flexWrap:'wrap'}}>
-              <div style={{flex:1,minWidth:120,background:'white',borderRadius:10,padding:'7px 12px',border:'1px solid #e8eaf0',borderLeft:'4px solid #27ae60'}}>
-                <div style={{fontSize:'0.7rem',color:'#888',marginBottom:2}}>오늘 완강</div>
-                <div style={{fontSize:'1rem',fontWeight:600,color:'#27ae60',lineHeight:1.2}}>{todayDone}<span style={{fontSize:'0.75rem',fontWeight:400,color:'#aaa',marginLeft:3}}>건</span></div>
+            <div style={{display:'flex',gap:8,marginBottom:10,flexWrap:'wrap'}}>
+              <div style={{flex:1,minWidth:80,background:'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderLeft:'4px solid #27ae60',display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontSize:'0.72rem',color:'#888'}}>오늘 완강</span>
+                <span style={{fontSize:'0.95rem',fontWeight:600,color:'#27ae60'}}>{todayDone}<span style={{fontSize:'0.72rem',fontWeight:400,color:'#aaa',marginLeft:2}}>건</span></span>
               </div>
-              <div style={{flex:1,minWidth:120,background:'white',borderRadius:10,padding:'7px 12px',border:'1px solid #e8eaf0',borderLeft:'4px solid #c0392b'}}>
-                <div style={{fontSize:'0.7rem',color:'#888',marginBottom:2}}>숙제 미완료</div>
-                <div style={{fontSize:'1rem',fontWeight:600,color:'#c0392b',lineHeight:1.2}}>{pendingHw}<span style={{fontSize:'0.75rem',fontWeight:4000,color:'#aaa',marginLeft:4}}>개</span></div>
+              <div style={{flex:1,minWidth:80,background:'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderLeft:'4px solid #c0392b',display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontSize:'0.72rem',color:'#888'}}>숙제 미완료</span>
+                <span style={{fontSize:'0.95rem',fontWeight:600,color:'#c0392b'}}>{pendingHw}<span style={{fontSize:'0.72rem',fontWeight:400,color:'#aaa',marginLeft:2}}>개</span></span>
               </div>
-              {overdueHw>0&&<div style={{flex:1,minWidth:120,background:'white',borderRadius:10,padding:'12px 16px',border:'1px solid #e8eaf0',borderLeft:'4px solid #A02020'}}>
-                <div style={{fontSize:'0.72rem',color:'#888',marginBottom:4}}>기한초과</div>
-                <div style={{fontSize:'1.4rem',fontWeight:300,color:'#A02020'}}>{overdueHw}<span style={{fontSize:'0.8rem',fontWeight:400,color:'#aaa',marginLeft:4}}>건</span></div>
+              {overdueHw>0&&<div style={{flex:1,minWidth:80,background:'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderLeft:'4px solid #A02020',display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontSize:'0.72rem',color:'#888'}}>기한초과</span>
+                <span style={{fontSize:'0.95rem',fontWeight:600,color:'#A02020'}}>{overdueHw}<span style={{fontSize:'0.72rem',fontWeight:400,color:'#aaa',marginLeft:2}}>건</span></span>
               </div>}
             </div>
           );
@@ -679,7 +679,7 @@ function AdminDashboard({ onLogout }) {
                  return (
                    <div key={s.id}>
                      <div className="student-row" style={{cursor:'pointer'}} onClick={()=>setExpandedStudent(expanded?null:s.id)}>
-                       <div style={{minWidth:120}}><div style={{fontWeight:700,display:'flex',alignItems:'center',flexWrap:'wrap',gap:4}}>{s.name}{(s.grades||[s.grade].filter(Boolean)).map(g=><span key={g} style={{fontSize:'0.68rem',background:'#eef0f7',color:'#1a2744',borderRadius:4,padding:'1px 6px',fontWeight:600}}>{g}</span>)}</div><div style={{fontSize:'0.74rem',color:'#aaa'}}>{(()=>{const last=studentComps[0];if(!last)return '기록 없음';const l=last.lecture;const isHw=homework.some(h=>h.lectureId===l.id&&h.studentId===s.id);const tp=l.lectureType==='개념강의'?'개념강의':isHw?'숙제':'자기주도';const lbl=l.page?`${l.subject} p${l.page} ${l.title}`:`${l.subject} ${l.title}`;return `${lbl} · ${tp}`;})()}</div></div>
+                       <div style={{minWidth:120}}><div style={{fontWeight:700,display:'flex',alignItems:'center',flexWrap:'wrap',gap:4,fontWeight:400}}>{s.name}{(s.grades||[s.grade].filter(Boolean)).map(g=><span key={g} style={{fontSize:'0.68rem',background:'#eef0f7',color:'#1a2744',borderRadius:4,padding:'1px 6px',fontWeight:600}}>{g}</span>)}</div><div style={{fontSize:'0.74rem',color:'#aaa'}}>{(()=>{const last=studentComps[0];if(!last)return '기록 없음';const l=last.lecture;const isHw=homework.some(h=>h.lectureId===l.id&&h.studentId===s.id);const tp=l.lectureType==='개념강의'?'개념강의':isHw?'숙제':'자기주도';const lbl=l.page?`${l.subject} p${l.page} ${l.title}`:`${l.subject} ${l.title}`;return `${lbl} · ${tp}`;})()}</div></div>
                        <div className="progress-bar"><div className="progress-fill" style={{width:pct+'%'}}/></div>
                        <div style={{minWidth:80,textAlign:'right',fontSize:'0.85rem'}}>
                          <span style={{fontWeight:700,color:'#27ae60'}}>{done}</span><span style={{color:'#888'}}>/{total}강 ({pct}%)</span>
