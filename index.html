@@ -219,6 +219,9 @@ async function markComplete(studentId, lectureId, playData) {
 async function addStudent(name, attendNum, grades) {
   await db.collection('students').add({ name, attendNum: String(attendNum), grades: grades||[], createdAt: firebase.firestore.Timestamp.now() });
 }
+async function updateStudentGrades(id, grades) {
+  await db.collection('students').doc(id).update({ grades });
+}
 async function deleteStudent(id) {
   await db.collection('students').doc(id).delete();
 }
@@ -407,6 +410,8 @@ function AdminDashboard({ onLogout }) {
   const [newStudentName, setNewStudentName] = useState('');
   const [newStudentNum, setNewStudentNum] = useState('');
   const [newStudentGrades, setNewStudentGrades] = useState([]);
+  const [editingStudentId, setEditingStudentId] = useState(null);
+  const [editingGrades, setEditingGrades] = useState([]);
   const [hwSubject, setHwSubject] = useState('수학');
   const [hwGrade, setHwGrade] = useState('');
   const [hwTextbook, setHwTextbook] = useState('');
@@ -617,8 +622,26 @@ function AdminDashboard({ onLogout }) {
                          <span style={{fontWeight:700,color:'#27ae60'}}>{done}</span><span style={{color:'#888'}}>/{total}강 ({pct}%)</span>
                          <span style={{marginLeft:6,color:'#1a2744'}}>{expanded?'▲':'▼'}</span>
                        </div>
-                       <button className="btn btn-danger btn-sm" style={{marginLeft:8,flexShrink:0}} onClick={async(e)=>{e.stopPropagation();if(!confirm(`${s.name} 학생을 삭제하시겠습니까?`))return;await deleteStudent(s.id);setMsg(`${s.name} 삭제 완료`);setTimeout(()=>setMsg(''),3000);loadAll();}}>삭제</button>
+                       <button className="btn btn-gray btn-sm" style={{marginLeft:4,flexShrink:0}} onClick={e=>{e.stopPropagation();setEditingStudentId(s.id);setEditingGrades((s.grades||(s.grade?[s.grade]:[])));}}>학년</button>
+                       <button className="btn btn-danger btn-sm" style={{marginLeft:4,flexShrink:0}} onClick={async(e)=>{e.stopPropagation();if(!confirm(`${s.name} 학생을 삭제하시겠습니까?`))return;await deleteStudent(s.id);setMsg(`${s.name} 삭제 완료`);setTimeout(()=>setMsg(''),3000);loadAll();}}>삭제</button>
                      </div>
+                     {editingStudentId===s.id && (
+                       <div style={{background:'#f8f9fc',borderTop:'1px solid #e8eaf0',padding:'12px 16px'}} onClick={e=>e.stopPropagation()}>
+                         <div style={{fontSize:'0.82rem',fontWeight:700,color:'#1a2744',marginBottom:8}}>학년 지정 (복수 선택 가능)</div>
+                         <div style={{display:'flex',flexWrap:'wrap',gap:'4px 12px',marginBottom:10}}>
+                           {['중1','중2','중3','공통수학1','공통수학2','대수','미적분1','확통','기하','고1','고2','고3'].map(g=>(
+                             <label key={g} style={{display:'flex',alignItems:'center',gap:4,fontSize:'0.82rem',cursor:'pointer'}}>
+                               <input type="checkbox" checked={editingGrades.includes(g)} onChange={e=>setEditingGrades(prev=>e.target.checked?[...prev,g]:prev.filter(x=>x!==g))} style={{accentColor:'#1a2744'}}/>
+                               {g}
+                             </label>
+                           ))}
+                         </div>
+                         <div style={{display:'flex',gap:8}}>
+                           <button className="btn btn-primary btn-sm" onClick={async()=>{await updateStudentGrades(s.id,editingGrades);setEditingStudentId(null);setMsg(`${s.name} 학년 저장`);setTimeout(()=>setMsg(''),3000);loadAll();}}>저장</button>
+                           <button className="btn btn-gray btn-sm" onClick={()=>setEditingStudentId(null)}>취소</button>
+                         </div>
+                       </div>
+                     )}
                      {expanded && (
                        <div style={{background:'#f8f9fc',borderBottom:'1px solid #e8e8e8',padding:'8px 12px'}}>
                          {studentComps.length===0 ? (
