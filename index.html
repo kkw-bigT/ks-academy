@@ -216,8 +216,8 @@ async function markComplete(studentId, lectureId, playData) {
   };
   if (q.empty) await db.collection('completions').add(data);
 }
-async function addStudent(name, attendNum, grade) {
-  await db.collection('students').add({ name, attendNum: String(attendNum), grade: grade||'', createdAt: firebase.firestore.Timestamp.now() });
+async function addStudent(name, attendNum, grades) {
+  await db.collection('students').add({ name, attendNum: String(attendNum), grades: grades||[], createdAt: firebase.firestore.Timestamp.now() });
 }
 async function deleteStudent(id) {
   await db.collection('students').doc(id).delete();
@@ -406,7 +406,7 @@ function AdminDashboard({ onLogout }) {
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
   const [newStudentNum, setNewStudentNum] = useState('');
-  const [newStudentGrade, setNewStudentGrade] = useState('');
+  const [newStudentGrades, setNewStudentGrades] = useState([]);
   const [hwSubject, setHwSubject] = useState('수학');
   const [hwGrade, setHwGrade] = useState('');
   const [hwTextbook, setHwTextbook] = useState('');
@@ -560,18 +560,22 @@ function AdminDashboard({ onLogout }) {
                 <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                   <input className="input" style={{flex:1,minWidth:100}} placeholder="이름" value={newStudentName} onChange={e=>setNewStudentName(e.target.value)}/>
                   <input className="input" style={{flex:1,minWidth:80}} placeholder="출결번호" type="number" value={newStudentNum} onChange={e=>setNewStudentNum(e.target.value)}/>
-                  <select className="select" style={{flex:1,minWidth:100}} value={newStudentGrade} onChange={e=>setNewStudentGrade(e.target.value)}>
-                    <option value=''>학년 선택</option>
-                    {['중1','중2','중3','공통수학1','공통수학2','대수','미적분1','확통','기하','고1','고2','고3'].map(g=><option key={g} value={g}>{g}</option>)}
-                  </select>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:'4px 10px',padding:'8px 10px',background:'#f8f9fc',borderRadius:8,border:'1px solid #e0e0e0',width:'100%'}}>
+                    {['중1','중2','중3','공통수학1','공통수학2','대수','미적분1','확통','기하','고1','고2','고3'].map(g=>(
+                      <label key={g} style={{display:'flex',alignItems:'center',gap:4,fontSize:'0.82rem',cursor:'pointer',userSelect:'none'}}>
+                        <input type="checkbox" checked={newStudentGrades.includes(g)} onChange={e=>setNewStudentGrades(prev=>e.target.checked?[...prev,g]:prev.filter(x=>x!==g))} style={{accentColor:'#1a2744'}}/>
+                        {g}
+                      </label>
+                    ))}
+                  </div>
                   <button className="btn btn-primary" disabled={!newStudentName.trim()||!newStudentNum.trim()} onClick={async()=>{
                     const dup = students.find(s=>s.attendNum===String(newStudentNum));
                     if(dup){setMsg('이미 등록된 출결번호입니다'); setTimeout(()=>setMsg(''),3000); return;}
-                    await addStudent(newStudentName.trim(), newStudentNum.trim(), newStudentGrade);
-                    setNewStudentName(''); setNewStudentNum(''); setNewStudentGrade(''); setShowAddStudent(false);
+                    await addStudent(newStudentName.trim(), newStudentNum.trim(), newStudentGrades);
+                    setNewStudentName(''); setNewStudentNum(''); setNewStudentGrades([]); setShowAddStudent(false);
                     setMsg(`${newStudentName} 학생 등록 완료`); setTimeout(()=>setMsg(''),3000); loadAll();
                   }}>등록</button>
-                  <button className="btn btn-gray btn-sm" onClick={()=>{setShowAddStudent(false);setNewStudentName('');setNewStudentNum('');setNewStudentGrade('');}}>취소</button>
+                  <button className="btn btn-gray btn-sm" onClick={()=>{setShowAddStudent(false);setNewStudentName('');setNewStudentNum('');setNewStudentGrades([]);}}>취소</button>
                 </div>
               </div>
             )}
@@ -607,7 +611,7 @@ function AdminDashboard({ onLogout }) {
                  return (
                    <div key={s.id}>
                      <div className="student-row" style={{cursor:'pointer'}} onClick={()=>setExpandedStudent(expanded?null:s.id)}>
-                       <div style={{minWidth:120}}><div style={{fontWeight:700}}>{s.name} {s.grade&&<span style={{fontSize:'0.72rem',background:'#eef0f7',color:'#1a2744',borderRadius:4,padding:'1px 6px',fontWeight:600,marginLeft:4}}>{s.grade}</span>}</div><div style={{fontSize:'0.78rem',color:'#888'}}>출결번호: {s.attendNum}</div></div>
+                       <div style={{minWidth:120}}><div style={{fontWeight:700,display:'flex',alignItems:'center',flexWrap:'wrap',gap:4}}>{s.name}{(s.grades||[s.grade].filter(Boolean)).map(g=><span key={g} style={{fontSize:'0.68rem',background:'#eef0f7',color:'#1a2744',borderRadius:4,padding:'1px 6px',fontWeight:600}}>{g}</span>)}</div><div style={{fontSize:'0.78rem',color:'#888'}}>출결번호: {s.attendNum}</div></div>
                        <div className="progress-bar"><div className="progress-fill" style={{width:pct+'%'}}/></div>
                        <div style={{minWidth:80,textAlign:'right',fontSize:'0.85rem'}}>
                          <span style={{fontWeight:700,color:'#27ae60'}}>{done}</span><span style={{color:'#888'}}>/{total}강 ({pct}%)</span>
@@ -841,7 +845,8 @@ function StudentDashboard({ student, onLogout }) {
   const [completions, setCompletions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [subject, setSubject] = useState('수학');
-  const [grade, setGrade] = useState(student.grade||null);
+  const assignedGrades = student.grades && student.grades.length>0 ? student.grades : (student.grade ? [student.grade] : []);
+  const [grade, setGrade] = useState(assignedGrades.length===1 ? assignedGrades[0] : null);
   const [textbook, setTextbook] = useState('');
   const [pageSearch, setPageSearch] = useState('');
   const [selectedLecture, setSelectedLecture] = useState(null);
@@ -915,10 +920,14 @@ function StudentDashboard({ student, onLogout }) {
         </div>
 
         <div className="grade-pills">
-          {grade ? (
+          {assignedGrades.length>0 ? (
+            assignedGrades.map(g=>(
+              <button key={g} className={"grade-pill"+(grade===g?' active':'')} onClick={()=>handleGrade(g)}>{g}</button>
+            ))
+          ) : grade ? (
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               <button className="grade-pill active">{grade}</button>
-              {!student.grade && <button onClick={()=>handleGrade('')} style={{background:'none',border:'none',color:'#aaa',fontSize:'0.8rem',cursor:'pointer',padding:'2px 6px'}}>✕ 변경</button>}
+              <button onClick={()=>handleGrade('')} style={{background:'none',border:'none',color:'#aaa',fontSize:'0.8rem',cursor:'pointer',padding:'2px 6px'}}>✕ 변경</button>
             </div>
           ) : (
             (subject==='수학' ? [['중1','중2','중3'],['공통수학1','공통수학2'],['대수','미적분1','확통','기하']] : [['중1','중2','중3'],['고1','고2','고3']]).map((group,gi)=>(
