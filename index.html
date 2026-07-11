@@ -40,8 +40,8 @@ html{background:#1a2744}body{font-family:'Malgun Gothic','Apple SD Gothic Neo',s
 .input{width:100%;padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.95rem;outline:none;transition:border-color 0.2s}
 .input:focus{border-color:#1a2744}
 .label{display:block;margin-bottom:6px;font-weight:600;color:#333;font-size:0.9rem}
-.tab-bar{display:flex;gap:4px;margin-bottom:20px;background:#f0f2f5;padding:4px;border-radius:10px}
-.tab{flex:1;padding:7px 3px;text-align:center;border:none;background:transparent;cursor:pointer;border-radius:8px;font-weight:600;color:#666;transition:all 0.2s;outline:none;font-size:0.78rem;white-space:nowrap}
+.tab-bar{display:flex;gap:4px;margin-bottom:12px;background:#f0f2f5;padding:3px;border-radius:8px}
+.tab{flex:1;padding:5px 3px;text-align:center;border:none;background:transparent;cursor:pointer;border-radius:6px;font-weight:600;color:#666;transition:all 0.2s;outline:none;font-size:0.76rem;white-space:nowrap}
 .tab.active{background:white;color:#1a2744;box-shadow:0 2px 6px rgba(0,0,0,0.1);outline:none}
 .subject-tabs{display:flex;gap:0;margin-bottom:12px;border:1px solid #1a2744;border-radius:10px;overflow:hidden;width:100%}
 .subject-tab{padding:10px 0;border:none;border-right:1px solid #1a2744;background:white;color:#1a2744;cursor:pointer;font-weight:600;font-size:0.9rem;transition:all 0.2s;outline:none;flex:1;text-align:center;letter-spacing:1px}
@@ -422,7 +422,7 @@ function AdminDashboard({ onLogout }) {
   const [newPw2, setNewPw2] = useState('');
   const [expandedStudent, setExpandedStudent] = useState(null);
   const [studentSearch, setStudentSearch] = useState('');
-  const [studentGradeFilter, setStudentGradeFilter] = useState('전체');
+  const [studentDateFilter, setStudentDateFilter] = useState('전체');
   const [noticeInput, setNoticeInput] = useState('');
   const [noticeSaved, setNoticeSaved] = useState('');
   const [homework, setHomework] = useState([]);
@@ -520,11 +520,11 @@ function AdminDashboard({ onLogout }) {
           const pendingHw = homework.filter(h=>!h.completedAt).length;
           return (
             <div style={{display:'flex',gap:10,marginBottom:14,flexWrap:'wrap'}}>
-              <div style={{flex:1,minWidth:120,background:'white',borderRadius:10,padding:'12px 16px',border:'1px solid #e8eaf0',borderLeft:'4px solid #27ae60'}}>
+              <div style={{flex:1,minWidth:120,background:'white',borderRadius:10,padding:'7px 12px',border:'1px solid #e8eaf0',borderLeft:'4px solid #27ae60'}}>
                 <div style={{fontSize:'0.72rem',color:'#888',marginBottom:4}}>오늘 완강</div>
-                <div style={{fontSize:'1.4rem',fontWeight:300,color:'#27ae60'}}>{todayDone}<span style={{fontSize:'0.8rem',fontWeight:400,color:'#aaa',marginLeft:4}}>건</span></div>
+                <div style={{fontSize:'1.2rem',fontWeight:300,color:'#27ae60'}}>{todayDone}<span style={{fontSize:'0.8rem',fontWeight:400,color:'#aaa',marginLeft:4}}>건</span></div>
               </div>
-              <div style={{flex:1,minWidth:120,background:'white',borderRadius:10,padding:'12px 16px',border:'1px solid #e8eaf0',borderLeft:'4px solid #1a2744'}}>
+              <div style={{flex:1,minWidth:120,background:'white',borderRadius:10,padding:'7px 12px',border:'1px solid #e8eaf0',borderLeft:'4px solid #1a2744'}}>
                 <div style={{fontSize:'0.72rem',color:'#888',marginBottom:4}}>숙제 미완료</div>
                 <div style={{fontSize:'1.4rem',fontWeight:300,color:'#1a2744'}}>{pendingHw}<span style={{fontSize:'0.8rem',fontWeight:400,color:'#aaa',marginLeft:4}}>개</span></div>
               </div>
@@ -598,9 +598,11 @@ function AdminDashboard({ onLogout }) {
           <div>
             <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
               <input className="input" style={{flex:1,minWidth:120}} placeholder="이름 검색..." value={studentSearch} onChange={e=>setStudentSearch(e.target.value)}/>
-              <select className="select" style={{width:'auto'}} value={studentGradeFilter} onChange={e=>setStudentGradeFilter(e.target.value)}>
-                {['전체',...['중1','중2','중3','공통수학1','공통수학2','대수','미적분1','확통','기하','고1','고2','고3']].map(g=><option key={g}>{g}</option>)}
-              </select>
+              <div style={{display:'flex',gap:4,background:'#f0f2f5',padding:3,borderRadius:8}}>
+                {['전체','1주일','1달'].map(df=>(
+                  <button key={df} onClick={()=>setStudentDateFilter(df)} style={{padding:'4px 10px',border:'none',borderRadius:6,cursor:'pointer',fontWeight:600,fontSize:'0.78rem',background:studentDateFilter===df?'white':'transparent',color:studentDateFilter===df?'#1a2744':'#888',boxShadow:studentDateFilter===df?'0 1px 3px rgba(0,0,0,0.12)':'none',transition:'all 0.15s'}}>{df}</button>
+                ))}
+              </div>
               <button className="btn btn-primary btn-sm" onClick={()=>setShowAddStudent(p=>!p)}>+ 학생 추가</button>
             </div>
             {showAddStudent && (
@@ -634,9 +636,17 @@ function AdminDashboard({ onLogout }) {
                const gradeOrder=['중1','중2','중3','공통수학1','공통수학2','대수','미적분1','확통','기하','고1','고2','고3'];
                const filteredStudents = students.filter(s=>{
                  if(studentSearch && !s.name.includes(studentSearch)) return false;
-                 if(studentGradeFilter!=='전체'){
-                   const hasGrade = completions.some(c=>c.studentId===s.id && lectures.find(l=>l.id===c.lectureId&&l.grade===studentGradeFilter));
-                   if(!hasGrade) return false;
+                 if(studentDateFilter!=='전체'){
+                   const now = new Date();
+                   const cutoff = new Date(now);
+                   if(studentDateFilter==='1주일') cutoff.setDate(now.getDate()-7);
+                   else if(studentDateFilter==='1달') cutoff.setMonth(now.getMonth()-1);
+                   const hasRecent = completions.some(c2=>{
+                     if(c2.studentId!==s.id) return false;
+                     const d = c2.completedAt?.toDate ? c2.completedAt.toDate() : new Date(c2.completedAt||0);
+                     return d >= cutoff;
+                   });
+                   if(!hasRecent) return false;
                  }
                  return true;
                }).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
@@ -652,6 +662,15 @@ function AdminDashboard({ onLogout }) {
                      return {...c, lecture: lec};
                    })
                    .filter(c=>c.lecture)
+                   .filter(c=>{
+                     if(studentDateFilter==='전체') return true;
+                     const now = new Date();
+                     const cutoff = new Date(now);
+                     if(studentDateFilter==='1주일') cutoff.setDate(now.getDate()-7);
+                     else if(studentDateFilter==='1달') cutoff.setMonth(now.getMonth()-1);
+                     const d = c.completedAt?.toDate ? c.completedAt.toDate() : new Date(c.completedAt||0);
+                     return d >= cutoff;
+                   })
                    .sort((a,b)=>{
                      const ta = a.completedAt?.toDate ? a.completedAt.toDate() : new Date(a.completedAt||0);
                      const tb = b.completedAt?.toDate ? b.completedAt.toDate() : new Date(b.completedAt||0);
@@ -691,37 +710,26 @@ function AdminDashboard({ onLogout }) {
                          {studentComps.length===0 ? (
                            <div style={{color:'#aaa',fontSize:'0.85rem',padding:'8px 0'}}>완강 기록이 없습니다</div>
                          ) : (
-                           <table style={{width:'100%',fontSize:'0.8rem',borderCollapse:'collapse'}}>
-                             <thead>
-                               <tr style={{color:'#888',borderBottom:'1px solid #e0e0e0'}}>
-                                 <th style={{textAlign:'left',padding:'4px 8px',fontWeight:600}}>과목/학년</th>
-                                 <th style={{textAlign:'left',padding:'4px 8px',fontWeight:600}}>교재</th>
-                                 <th style={{textAlign:'left',padding:'4px 8px',fontWeight:600}}>페이지</th>
-                                 <th style={{textAlign:'left',padding:'4px 8px',fontWeight:600}}>문제번호</th>
-                                 <th style={{textAlign:'right',padding:'4px 8px',fontWeight:600}}>완강시각</th>
-                                 <th style={{textAlign:'right',padding:'4px 8px',fontWeight:600}}>시청시간</th>
-                               </tr>
-                             </thead>
-                             <tbody>
-                               {studentComps.map((c,i)=>{
-                                 const l = c.lecture;
-                                 const dt = c.completedAt?.toDate ? c.completedAt.toDate() : new Date(c.completedAt||0);
-                                 const dateStr = dt.toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'});
-                                 const timeStr = dt.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-                                 const mins = c.playSeconds ? Math.floor(c.playSeconds/60)+'분'+Math.round(c.playSeconds%60)+'초' : '-';
-                                 return (
-                                   <tr key={i} style={{borderBottom:'1px solid #f0f0f0',color:'#333'}}>
-                                     <td style={{padding:'5px 8px'}}>{l.subject}/{l.grade}</td>
-                                     <td style={{padding:'5px 8px'}}>{l.textbook}</td>
-                                     <td style={{padding:'5px 8px'}}>{l.page}p</td>
-                                     <td style={{padding:'5px 8px',fontWeight:600,color:'#1a2744'}}>{l.title}</td>
-                                     <td style={{padding:'5px 8px',textAlign:'right',color:'#555'}}>{dateStr} {timeStr}</td>
-                                     <td style={{padding:'5px 8px',textAlign:'right',color:'#27ae60'}}>{mins}</td>
-                                   </tr>
-                                 );
-                               })}
-                             </tbody>
-                           </table>
+                           <div>
+                           {studentComps.map((c,i)=>{
+                             const l = c.lecture;
+                             const dt = c.completedAt?.toDate ? c.completedAt.toDate() : new Date(c.completedAt||0);
+                             const dateStr = dt.toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'});
+                             const timeStr = dt.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+                             // Determine type: check if this completion was from homework
+                             const isHw = homework.some(h=>h.lectureId===l.id && h.studentId===s.id);
+                             const ltype = l.lectureType==='개념강의' ? '개념강의' : (isHw ? '숙제' : '자기주도');
+                             const typeColor = ltype==='숙제'?'#A02020':ltype==='개념강의'?'#1a6b3a':'#1a2744';
+                             const label = l.page ? `${l.subject} p${l.page} ${l.title}` : `${l.subject} ${l.title}`;
+                             return (
+                               <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 4px',borderBottom:'1px solid #f0f0f0'}}>
+                                 <span style={{fontSize:'0.78rem',fontWeight:700,color:'#1a2744',flex:1}}>{label}</span>
+                                 <span style={{fontSize:'0.68rem',padding:'2px 6px',borderRadius:4,background:typeColor+'15',color:typeColor,fontWeight:700,flexShrink:0}}>{ltype}</span>
+                                 <span style={{fontSize:'0.72rem',color:'#888',flexShrink:0,whiteSpace:'nowrap'}}>{dateStr} {timeStr}</span>
+                               </div>
+                             );
+                           })}
+                         </div>
                          )}
                        </div>
                      )}
