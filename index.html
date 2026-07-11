@@ -170,6 +170,12 @@ function formatDate(ts) {
   const d = ts.toDate ? ts.toDate() : new Date(ts);
   return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
 }
+async function getAdminPassword() {
+  try { const d = await db.collection('settings').doc('admin').get(); return d.exists ? d.data().password : null; } catch(e) { return null; }
+}
+async function saveAdminPassword(pw) {
+  await db.collection('settings').doc('admin').set({ password: pw });
+}
 async function getNotice() {
   try {
     const doc = await db.collection('settings').doc('notice').get();
@@ -283,9 +289,11 @@ function LoginPage({ onLogin, onAdminLogin }) {
     setLoading(false);
   }
 
-  function handleAdminLogin(e) {
+  async function handleAdminLogin(e) {
     e.preventDefault();
-    if (adminPw === 'admin123') onAdminLogin();
+    const savedPw = await getAdminPassword();
+    const correctPw = savedPw || 'admin123';
+    if (adminPw === correctPw) onAdminLogin();
     else setError('비밀번호가 틀렸습니다');
   }
 
@@ -399,6 +407,8 @@ function AdminDashboard({ onLogout }) {
   const [filterGrade, setFilterGrade] = useState('전체');
   const [showAllLectures, setShowAllLectures] = useState(false);
   const [msg, setMsg] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [newPw2, setNewPw2] = useState('');
   const [expandedStudent, setExpandedStudent] = useState(null);
   const [studentSearch, setStudentSearch] = useState('');
   const [studentGradeFilter, setStudentGradeFilter] = useState('전체');
@@ -492,6 +502,28 @@ function AdminDashboard({ onLogout }) {
     <div>
       <Header user={null} onLogout={onLogout} />
       <div className="container">
+        {(()=>{
+          const today = new Date(); today.setHours(0,0,0,0);
+          const todayDone = completions.filter(c=>{const d=c.completedAt?.toDate?c.completedAt.toDate():new Date(c.completedAt||0);return d>=today;}).length;
+          const overdueHw = homework.filter(h=>{if(h.completedAt)return false;if(!h.dueDate)return false;return new Date(h.dueDate)<today;}).length;
+          const pendingHw = homework.filter(h=>!h.completedAt).length;
+          return (
+            <div style={{display:'flex',gap:10,marginBottom:14,flexWrap:'wrap'}}>
+              <div style={{flex:1,minWidth:120,background:'white',borderRadius:10,padding:'12px 16px',border:'1px solid #e8eaf0',borderLeft:'4px solid #27ae60'}}>
+                <div style={{fontSize:'0.72rem',color:'#888',marginBottom:4}}>오늘 완강</div>
+                <div style={{fontSize:'1.6rem',fontWeight:800,color:'#27ae60'}}>{todayDone}<span style={{fontSize:'0.8rem',fontWeight:400,color:'#aaa',marginLeft:4}}>건</span></div>
+              </div>
+              <div style={{flex:1,minWidth:120,background:'white',borderRadius:10,padding:'12px 16px',border:'1px solid #e8eaf0',borderLeft:'4px solid #1a2744'}}>
+                <div style={{fontSize:'0.72rem',color:'#888',marginBottom:4}}>숙제 미완료</div>
+                <div style={{fontSize:'1.6rem',fontWeight:800,color:'#1a2744'}}>{pendingHw}<span style={{fontSize:'0.8rem',fontWeight:400,color:'#aaa',marginLeft:4}}>개</span></div>
+              </div>
+              {overdueHw>0&&<div style={{flex:1,minWidth:120,background:'white',borderRadius:10,padding:'12px 16px',border:'1px solid #e8eaf0',borderLeft:'4px solid #A02020'}}>
+                <div style={{fontSize:'0.72rem',color:'#888',marginBottom:4}}>기한초과</div>
+                <div style={{fontSize:'1.6rem',fontWeight:800,color:'#A02020'}}>{overdueHw}<span style={{fontSize:'0.8rem',fontWeight:400,color:'#aaa',marginLeft:4}}>건</span></div>
+              </div>}
+            </div>
+          );
+        })()}
         <div className="card" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <h2 style={{color:'#1a2744',fontSize:'1.1rem'}}>원장님 관리 페이지</h2>
           <button className="btn btn-gray btn-sm" onClick={onLogout}>로그아웃</button>
@@ -502,6 +534,7 @@ function AdminDashboard({ onLogout }) {
           <button className={"tab"+(tab==='students'?' active':'')} onClick={()=>setTab('students')}>학생 현황</button>
           <button className={"tab"+(tab==='homework'?' active':'')} onClick={()=>setTab('homework')}>숙제 지정</button>
           <button className={"tab"+(tab==='notice'?' active':'')} onClick={()=>setTab('notice')}>공지사항</button>
+          <button className={"tab"+(tab==='settings'?' active':'')} onClick={()=>setTab('settings')}>설정</button>
           <button className="btn btn-gray btn-sm" style={{marginLeft:'auto',fontSize:'0.78rem'}} onClick={exportCSV}>다운로드</button>
         </div>
 
@@ -789,6 +822,21 @@ function AdminDashboard({ onLogout }) {
           </div>
         )}
 
+        {tab==='settings' && (
+          <div className="card">
+            <h3 style={{color:'#1a2744',marginBottom:16}}>원장님 비밀번호 변경</h3>
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              <input className="input" type="password" placeholder="새 비밀번호" value={newPw} onChange={e=>setNewPw(e.target.value)}/>
+              <input className="input" type="password" placeholder="새 비밀번호 확인" value={newPw2} onChange={e=>setNewPw2(e.target.value)}/>
+              <button className="btn btn-primary" disabled={!newPw||newPw.length<4} onClick={async()=>{
+                if(newPw!==newPw2){setMsg('비밀번호가 일치하지 않습니다');setTimeout(()=>setMsg(''),3000);return;}
+                await saveAdminPassword(newPw); setNewPw(''); setNewPw2('');
+                setMsg('비밀번호가 변경되었습니다'); setTimeout(()=>setMsg(''),3000);
+              }}>변경</button>
+            </div>
+            <p style={{marginTop:12,fontSize:'0.8rem',color:'#aaa'}}>※ 비밀번호는 4자 이상으로 설정해주세요.</p>
+          </div>
+        )}
       </div>
       <div className="app-footer">
         <div className="app-footer-brand">KS EDU GROUP</div>
@@ -932,9 +980,17 @@ function StudentDashboard({ student, onLogout }) {
           </div>
         )}
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 4px 4px'}}>
-          <span style={{color:'#888',fontSize:'0.82rem'}}>최근 완강 <strong style={{color:'#27ae60'}}>{doneCount}개</strong></span>
+          <span style={{color:'#888',fontSize:'0.82rem'}}>완강 <strong style={{color:'#27ae60'}}>{doneCount}개</strong>{totalCount>0&&<span style={{color:'#bbb'}}> / {totalCount}강</span>}</span>
           <span style={{color:'#bbb',fontSize:'0.9rem'}}>{student.name} 학생</span>
         </div>
+        {totalCount>0&&(
+          <div style={{marginBottom:8,padding:'0 4px'}}>
+            <div style={{background:'#e8eaf0',borderRadius:6,height:7,overflow:'hidden'}}>
+              <div style={{background:'#27ae60',height:'100%',borderRadius:6,width:Math.round(doneCount/totalCount*100)+'%',transition:'width 0.5s'}}/>
+            </div>
+            <div style={{fontSize:'0.7rem',color:'#27ae60',textAlign:'right',marginTop:2,fontWeight:600}}>{Math.round(doneCount/totalCount*100)}%</div>
+          </div>
+        )}
 
         <div className="subject-tabs">
           {Object.keys(GRADES).map(s=>(
