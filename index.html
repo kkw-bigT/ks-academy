@@ -146,8 +146,7 @@ async function loginStudent(name, attendNum) {
   const q = await db.collection('students')
     .where('name','==',name).where('attendNum','==',attendNum).get();
   if (!q.empty) return { id: q.docs[0].id, ...q.docs[0].data() };
-  const ref = await db.collection('students').add({ name, attendNum, createdAt: new Date() });
-  return { id: ref.id, name, attendNum };
+  return null;
 }
 async function getLectures() {
   const snap = await db.collection('lectures').get();
