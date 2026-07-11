@@ -216,6 +216,12 @@ async function markComplete(studentId, lectureId, playData) {
   };
   if (q.empty) await db.collection('completions').add(data);
 }
+async function addStudent(name, attendNum) {
+  await db.collection('students').add({ name, attendNum: String(attendNum), createdAt: firebase.firestore.Timestamp.now() });
+}
+async function deleteStudent(id) {
+  await db.collection('students').doc(id).delete();
+}
 async function getAllStudents() {
   const snap = await db.collection('students').orderBy('attendNum').get();
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -397,6 +403,9 @@ function AdminDashboard({ onLogout }) {
   const [noticeSaved, setNoticeSaved] = useState('');
   const [homework, setHomework] = useState([]);
   const [hwStudent, setHwStudent] = useState('');
+  const [showAddStudent, setShowAddStudent] = useState(false);
+  const [newStudentName, setNewStudentName] = useState('');
+  const [newStudentNum, setNewStudentNum] = useState('');
   const [hwSubject, setHwSubject] = useState('수학');
   const [hwGrade, setHwGrade] = useState('');
   const [hwTextbook, setHwTextbook] = useState('');
@@ -542,7 +551,25 @@ function AdminDashboard({ onLogout }) {
               <select className="select" style={{width:'auto'}} value={studentGradeFilter} onChange={e=>setStudentGradeFilter(e.target.value)}>
                 {['전체',...['중1','중2','중3','공통수학1','공통수학2','대수','미적분1','확통','기하','고1','고2','고3']].map(g=><option key={g}>{g}</option>)}
               </select>
+              <button className="btn btn-primary btn-sm" onClick={()=>setShowAddStudent(p=>!p)}>+ 학생 추가</button>
             </div>
+            {showAddStudent && (
+              <div style={{background:'white',border:'1px solid #e0e0e0',borderRadius:10,padding:'14px 16px',marginBottom:12}}>
+                <div style={{fontWeight:700,color:'#1a2744',marginBottom:10,fontSize:'0.9rem'}}>새 학생 등록</div>
+                <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                  <input className="input" style={{flex:1,minWidth:100}} placeholder="이름" value={newStudentName} onChange={e=>setNewStudentName(e.target.value)}/>
+                  <input className="input" style={{flex:1,minWidth:80}} placeholder="출결번호" type="number" value={newStudentNum} onChange={e=>setNewStudentNum(e.target.value)}/>
+                  <button className="btn btn-primary" disabled={!newStudentName.trim()||!newStudentNum.trim()} onClick={async()=>{
+                    const dup = students.find(s=>s.attendNum===String(newStudentNum));
+                    if(dup){setMsg('이미 등록된 출결번호입니다'); setTimeout(()=>setMsg(''),3000); return;}
+                    await addStudent(newStudentName.trim(), newStudentNum.trim());
+                    setNewStudentName(''); setNewStudentNum(''); setShowAddStudent(false);
+                    setMsg(`${newStudentName} 학생 등록 완료`); setTimeout(()=>setMsg(''),3000); loadAll();
+                  }}>등록</button>
+                  <button className="btn btn-gray btn-sm" onClick={()=>{setShowAddStudent(false);setNewStudentName('');setNewStudentNum('');}}>취소</button>
+                </div>
+              </div>
+            )}
             {loading ? <div className="empty">로딩 중...</div> :
              students.length===0 ? <div className="empty">학생이 없습니다</div> :
              (()=>{
@@ -581,6 +608,7 @@ function AdminDashboard({ onLogout }) {
                          <span style={{fontWeight:700,color:'#27ae60'}}>{done}</span><span style={{color:'#888'}}>/{total}강 ({pct}%)</span>
                          <span style={{marginLeft:6,color:'#1a2744'}}>{expanded?'▲':'▼'}</span>
                        </div>
+                       <button className="btn btn-danger btn-sm" style={{marginLeft:8,flexShrink:0}} onClick={async(e)=>{e.stopPropagation();if(!confirm(`${s.name} 학생을 삭제하시겠습니까?`))return;await deleteStudent(s.id);setMsg(`${s.name} 삭제 완료`);setTimeout(()=>setMsg(''),3000);loadAll();}}>삭제</button>
                      </div>
                      {expanded && (
                        <div style={{background:'#f8f9fc',borderBottom:'1px solid #e8e8e8',padding:'8px 12px'}}>
