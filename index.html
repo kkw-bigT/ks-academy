@@ -1040,14 +1040,12 @@ function StudentDashboard({ student, onLogout }) {
           )}
         </div>
 
-        {textbooks.length>0 && (
-          <div style={{marginBottom:16}}>
+        <div style={{marginBottom:16}}>
             <select className="select" value={textbook} onChange={e=>setTextbook(e.target.value)}>
               <option value="">교재 선택...</option>
               {textbooks.map(t=><option key={t}>{t}</option>)}
             </select>
           </div>
-        )}
 
         {grade && (
           <div style={{display:'flex',gap:0,marginBottom:10,border:'1px solid #1a2744',borderRadius:8,overflow:'hidden'}}>
