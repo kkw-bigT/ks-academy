@@ -967,13 +967,13 @@ function StudentDashboard({ student, onLogout }) {
     if (books.length>0) setTextbook(books[0]);
   }
 
-  const filteredBySubjectGrade = lectures.filter(l=>l.subject===subject&&l.grade===grade);
-  const textbooks = [...new Set(filteredBySubjectGrade.map(l=>l.textbook))];
-  const displayed = filteredBySubjectGrade.filter(l=>{
+  const filteredBySubjectGrade = lectures.filter(l=>l.subject===subject&&(grade?l.grade===grade:true));
+  const textbooks = [...new Set(lectures.filter(l=>l.subject===subject).map(l=>l.textbook))];
+  const displayed = (grade||textbook) ? filteredBySubjectGrade.filter(l=>{
     if (textbook&&l.textbook!==textbook) return false;
     if (pageSearch&&!l.page.includes(pageSearch)) return false;
     return true;
-  });
+  }) : [];
 
   async function handleComplete(lectureId, playData) {
     await markComplete(student.id, lectureId, playData);
@@ -1043,6 +1043,7 @@ function StudentDashboard({ student, onLogout }) {
         {textbooks.length>0 && (
           <div style={{marginBottom:16}}>
             <select className="select" value={textbook} onChange={e=>setTextbook(e.target.value)}>
+              <option value="">교재 선택...</option>
               {textbooks.map(t=><option key={t}>{t}</option>)}
             </select>
           </div>
