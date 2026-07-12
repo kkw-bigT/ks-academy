@@ -43,9 +43,9 @@ html{background:#1a2744}body{font-family:'Malgun Gothic','Apple SD Gothic Neo',s
 .tab-bar{display:flex;gap:4px;margin-bottom:12px;background:#f0f2f5;padding:3px;border-radius:8px}
 .tab{flex:1;padding:5px 3px;text-align:center;border:none;background:transparent;cursor:pointer;border-radius:6px;font-weight:400;color:#666;transition:all 0.2s;outline:none;font-size:0.76rem;white-space:nowrap}
 .tab.active{background:white;color:#1a2744;box-shadow:0 2px 6px rgba(0,0,0,0.1);outline:none}
-.subject-tabs{display:flex;gap:0;margin-bottom:12px;border:1px solid #1a2744;border-radius:10px;overflow:hidden;width:100%}
-.subject-tab{padding:10px 0;border:none;border-right:1px solid #1a2744;background:white;color:#1a2744;cursor:pointer;font-weight:600;font-size:0.9rem;transition:all 0.2s;outline:none;flex:1;text-align:center;letter-spacing:1px}
-.subject-tab.active{background:#1a2744;color:white;border:none;border-right:1px solid #1a2744;outline:none}
+.subject-tabs{display:flex;gap:4px;margin-bottom:12px;background:#f0f2f5;padding:3px;border-radius:8px;width:100%}
+.subject-tab{padding:7px 0;border:none;background:transparent;color:#666;cursor:pointer;font-weight:400;font-size:0.85rem;transition:all 0.2s;outline:none;flex:1;text-align:center;border-radius:6px}
+.subject-tab.active{background:white;color:#1a2744;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.12)}
 .grade-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
 .grade-pill{padding:6px 16px;border:1.5px solid #ccc;background:white;border-radius:20px;cursor:pointer;font-size:0.85rem;transition:all 0.2s}
 .grade-pill.active{border-color:#1a2744;background:#1a2744;color:white}
@@ -991,7 +991,7 @@ function StudentDashboard({ student, onLogout }) {
 
   const [homework, setHomework] = useState([]);
   const [selectedHomeworkId, setSelectedHomeworkId] = useState(null);
-  const [viewMode, setViewMode] = useState('페이지검색');
+  const [viewMode, setViewMode] = useState('문제강의');
 
   useEffect(()=>{ loadData(); getLecturesBySubject(subject).then(setLectures); },[]);
 
@@ -1007,7 +1007,7 @@ function StudentDashboard({ student, onLogout }) {
     getLecturesBySubject(s).then(setLectures);
   }
   function handleGrade(g) {
-    setGrade(g); setTextbook(''); setPageSearch(''); setViewMode('페이지검색');
+    setGrade(g); setTextbook(''); setPageSearch(''); setViewMode('문제강의');
     if(!g) return;
     const filtered = lectures.filter(x=>x.subject===subject&&x.grade===g);
     const books = [...new Set(filtered.map(x=>x.textbook))];
@@ -1094,10 +1094,10 @@ function StudentDashboard({ student, onLogout }) {
             </select>
           </div>
 
-        {grade && (
-          <div style={{display:'flex',gap:0,marginBottom:10,border:'1px solid #1a2744',borderRadius:8,overflow:'hidden'}}>
-            {['페이지검색','개념강의'].map(m=>(
-              <button key={m} type="button" style={{flex:1,padding:'8px',border:'none',background:viewMode===m?'#1a2744':'white',color:viewMode===m?'white':'#1a2744',fontWeight:600,fontSize:'0.85rem',cursor:'pointer',outline:'none',borderRight:m==='페이지검색'?'1px solid #1a2744':'none'}} onClick={()=>setViewMode(m)}>{m}</button>
+        {(grade||textbook) && (
+          <div style={{display:'flex',gap:4,marginBottom:10,background:'#f0f2f5',padding:3,borderRadius:8}}>
+            {['문제강의','개념강의'].map(m=>(
+              <button key={m} type="button" style={{flex:1,padding:'6px',border:'none',background:viewMode===m?'white':'transparent',color:viewMode===m?'#1a2744':'#888',fontWeight:viewMode===m?600:400,fontSize:'0.82rem',cursor:'pointer',outline:'none',borderRadius:6,boxShadow:viewMode===m?'0 1px 3px rgba(0,0,0,0.12)':'none',transition:'all 0.15s'}} onClick={()=>setViewMode(m)}>{m}</button>
             ))}
           </div>
         )}
