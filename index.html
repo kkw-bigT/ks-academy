@@ -520,6 +520,7 @@ function AdminDashboard({ onLogout }) {
           const overdueHw = homework.filter(h=>{if(h.completedAt)return false;if(!h.dueDate)return false;return new Date(h.dueDate)<today;}).length;
           const pendingHw = homework.filter(h=>!h.completedAt).length;
           return (
+            <React.Fragment>
             <div style={{display:'flex',gap:8,marginBottom:10,flexWrap:'wrap'}}>
               <div onClick={()=>setCardPanel(p=>p==='today'?null:'today')} style={{flex:1,minWidth:80,background:cardPanel==='today'?'#f0fff4':'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderBottom:'3px solid #27ae60',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
                 <span style={{fontSize:'0.72rem',color:'#888'}}>오늘 완강</span>
