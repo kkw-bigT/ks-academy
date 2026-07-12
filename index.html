@@ -522,13 +522,15 @@ function AdminDashboard({ onLogout }) {
           return (
             <React.Fragment>
             <div style={{display:'flex',gap:8,marginBottom:10,flexWrap:'wrap'}}>
-              <div style={{flex:1,minWidth:80,background:'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderLeft:'4px solid #27ae60',display:'flex',alignItems:'center',gap:8}}>
+              <div onClick={()=>setCardPanel(p=>p==='today'?null:'today')} style={{flex:1,minWidth:80,background:cardPanel==='today'?'#f0fff4':'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderBottom:'3px solid #27ae60',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
                 <span style={{fontSize:'0.72rem',color:'#888'}}>오늘 완강</span>
                 <span style={{fontSize:'0.95rem',fontWeight:600,color:'#27ae60'}}>{todayDone}<span style={{fontSize:'0.72rem',fontWeight:400,color:'#aaa',marginLeft:2}}>건</span></span>
+                <span style={{marginLeft:'auto',fontSize:'0.7rem',color:'#27ae60'}}>{cardPanel==='today'?'▲':'▼'}</span>
               </div>
-              <div style={{flex:1,minWidth:80,background:'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderLeft:'4px solid #c0392b',display:'flex',alignItems:'center',gap:8}}>
+              <div onClick={()=>setCardPanel(p=>p==='pending'?null:'pending')} style={{flex:1,minWidth:80,background:cardPanel==='pending'?'#fff0f0':'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderBottom:'3px solid #c0392b',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
                 <span style={{fontSize:'0.72rem',color:'#888'}}>숙제 미완료</span>
                 <span style={{fontSize:'0.95rem',fontWeight:600,color:'#c0392b'}}>{pendingHw}<span style={{fontSize:'0.72rem',fontWeight:400,color:'#aaa',marginLeft:2}}>개</span></span>
+                <span style={{marginLeft:'auto',fontSize:'0.7rem',color:'#c0392b'}}>{cardPanel==='pending'?'▲':'▼'}</span>
               </div>
               {overdueHw>0&&<div onClick={()=>setCardPanel(p=>p==='overdue'?null:'overdue')} style={{flex:1,minWidth:80,background:cardPanel==='overdue'?'#fff0f0':'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderBottom:'3px solid #A02020',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
                 <span style={{fontSize:'0.72rem',color:'#888'}}>기한초과</span>
