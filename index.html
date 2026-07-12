@@ -428,6 +428,7 @@ function AdminDashboard({ onLogout }) {
   const [homework, setHomework] = useState([]);
   const [hwStudent, setHwStudent] = useState('');
   const [showAddStudent, setShowAddStudent] = useState(false);
+  const [cardPanel, setCardPanel] = useState(null); // 'today'|'pending'|'overdue'|null
   const [newStudentName, setNewStudentName] = useState('');
   const [newStudentNum, setNewStudentNum] = useState('');
   const [newStudentGrades, setNewStudentGrades] = useState([]);
@@ -520,19 +521,65 @@ function AdminDashboard({ onLogout }) {
           const pendingHw = homework.filter(h=>!h.completedAt).length;
           return (
             <div style={{display:'flex',gap:8,marginBottom:10,flexWrap:'wrap'}}>
-              <div style={{flex:1,minWidth:80,background:'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderLeft:'4px solid #27ae60',display:'flex',alignItems:'center',gap:8}}>
+              <div onClick={()=>setCardPanel(p=>p==='today'?null:'today')} style={{flex:1,minWidth:80,background:cardPanel==='today'?'#f0fff4':'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderLeft:'4px solid #27ae60',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
                 <span style={{fontSize:'0.72rem',color:'#888'}}>오늘 완강</span>
                 <span style={{fontSize:'0.95rem',fontWeight:600,color:'#27ae60'}}>{todayDone}<span style={{fontSize:'0.72rem',fontWeight:400,color:'#aaa',marginLeft:2}}>건</span></span>
+                <span style={{marginLeft:'auto',fontSize:'0.7rem',color:'#27ae60'}}>{cardPanel==='today'?'▲':'▼'}</span>
               </div>
-              <div style={{flex:1,minWidth:80,background:'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderLeft:'4px solid #c0392b',display:'flex',alignItems:'center',gap:8}}>
+              <div onClick={()=>setCardPanel(p=>p==='pending'?null:'pending')} style={{flex:1,minWidth:80,background:cardPanel==='pending'?'#fff5f5':'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderLeft:'4px solid #c0392b',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
                 <span style={{fontSize:'0.72rem',color:'#888'}}>숙제 미완료</span>
                 <span style={{fontSize:'0.95rem',fontWeight:600,color:'#c0392b'}}>{pendingHw}<span style={{fontSize:'0.72rem',fontWeight:400,color:'#aaa',marginLeft:2}}>개</span></span>
+                <span style={{marginLeft:'auto',fontSize:'0.7rem',color:'#c0392b'}}>{cardPanel==='pending'?'▲':'▼'}</span>
               </div>
-              {overdueHw>0&&<div style={{flex:1,minWidth:80,background:'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderLeft:'4px solid #A02020',display:'flex',alignItems:'center',gap:8}}>
+              {overdueHw>0&&<div onClick={()=>setCardPanel(p=>p==='overdue'?null:'overdue')} style={{flex:1,minWidth:80,background:cardPanel==='overdue'?'#fff0f0':'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderLeft:'4px solid #A02020',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
                 <span style={{fontSize:'0.72rem',color:'#888'}}>기한초과</span>
                 <span style={{fontSize:'0.95rem',fontWeight:600,color:'#A02020'}}>{overdueHw}<span style={{fontSize:'0.72rem',fontWeight:400,color:'#aaa',marginLeft:2}}>건</span></span>
+                <span style={{marginLeft:'auto',fontSize:'0.7rem',color:'#A02020'}}>{cardPanel==='overdue'?'▲':'▼'}</span>
               </div>}
             </div>
+            {cardPanel && (()=>{
+              const today2=new Date(); today2.setHours(0,0,0,0);
+              let rows=[];
+              if(cardPanel==='today'){
+                const todayComps=completions.filter(c2=>{const d=c2.completedAt?.toDate?c2.completedAt.toDate():new Date(c2.completedAt||0);return d>=today2;});
+                const grouped={};
+                todayComps.forEach(c2=>{
+                  const s=students.find(x=>x.id===c2.studentId);
+                  const l=lectures.find(x=>x.id===c2.lectureId);
+                  if(!s||!l) return;
+                  if(!grouped[s.id]) grouped[s.id]={name:s.name,items:[]};
+                  grouped[s.id].items.push(l);
+                });
+                rows=Object.values(grouped).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+              } else if(cardPanel==='pending'||cardPanel==='overdue'){
+                const now=new Date();
+                const filtered=homework.filter(h=>{
+                  const due=h.dueDate?new Date(h.dueDate):null;
+                  const over=due&&!h.completedAt&&due<now;
+                  return cardPanel==='overdue'?over:(!h.completedAt);
+                });
+                const grouped={};
+                filtered.forEach(h=>{
+                  const s=students.find(x=>x.id===h.studentId);
+                  const l=lectures.find(x=>x.id===h.lectureId);
+                  if(!s) return;
+                  if(!grouped[s.id]) grouped[s.id]={name:s.name,items:[]};
+                  grouped[s.id].items.push(l?`${l.textbook} ${l.page}p ${l.title}`:'(강의 없음)');
+                });
+                rows=Object.values(grouped).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+              }
+              if(rows.length===0) return <div style={{background:'white',borderRadius:10,padding:'10px 14px',marginBottom:10,fontSize:'0.82rem',color:'#aaa'}}>해당 학생이 없습니다</div>;
+              return (
+                <div style={{background:'white',borderRadius:10,border:'1px solid #e8eaf0',marginBottom:10,overflow:'hidden'}}>
+                  {rows.map((r,i)=>(
+                    <div key={i} style={{padding:'8px 14px',borderBottom:i<rows.length-1?'1px solid #f5f5f5':'none'}}>
+                      <span style={{fontWeight:600,fontSize:'0.85rem',color:'#1a2744'}}>{r.name}</span>
+                      <span style={{fontSize:'0.75rem',color:'#888',marginLeft:8}}>{r.items.length>0?(typeof r.items[0]==='string'?r.items.join(', '):`${r.items.length}강`):''}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           );
         })()}
         <div className="card" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
