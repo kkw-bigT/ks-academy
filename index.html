@@ -522,17 +522,17 @@ function AdminDashboard({ onLogout }) {
           return (
             <React.Fragment>
             <div style={{display:'flex',gap:8,marginBottom:10,flexWrap:'wrap'}}>
-              <div onClick={()=>setCardPanel(p=>p==='today'?null:'today')} style={{flex:1,minWidth:80,background:cardPanel==='today'?'#f0fff4':'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderBottom:'3px solid #27ae60',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
+              <div onClick={()=>setCardPanel(p=>p==='today'?null:'today')} style={{flex:1,minWidth:80,background:'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderBottom:'3px solid #27ae60',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
                 <span style={{fontSize:'0.72rem',color:'#888'}}>오늘 완강</span>
                 <span style={{fontSize:'0.95rem',fontWeight:600,color:'#27ae60'}}>{todayDone}<span style={{fontSize:'0.72rem',fontWeight:400,color:'#aaa',marginLeft:2}}>건</span></span>
                 <span style={{marginLeft:'auto',fontSize:'0.7rem',color:'#27ae60'}}>{cardPanel==='today'?'▲':'▼'}</span>
               </div>
-              <div onClick={()=>setCardPanel(p=>p==='pending'?null:'pending')} style={{flex:1,minWidth:80,background:cardPanel==='pending'?'#fff0f0':'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderBottom:'3px solid #c0392b',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
+              <div onClick={()=>setCardPanel(p=>p==='pending'?null:'pending')} style={{flex:1,minWidth:80,background:'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderBottom:'3px solid #c0392b',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
                 <span style={{fontSize:'0.72rem',color:'#888'}}>숙제 미완료</span>
                 <span style={{fontSize:'0.95rem',fontWeight:600,color:'#c0392b'}}>{pendingHw}<span style={{fontSize:'0.72rem',fontWeight:400,color:'#aaa',marginLeft:2}}>개</span></span>
                 <span style={{marginLeft:'auto',fontSize:'0.7rem',color:'#c0392b'}}>{cardPanel==='pending'?'▲':'▼'}</span>
               </div>
-              {overdueHw>0&&<div onClick={()=>setCardPanel(p=>p==='overdue'?null:'overdue')} style={{flex:1,minWidth:80,background:cardPanel==='overdue'?'#fff0f0':'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderBottom:'3px solid #A02020',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
+              {overdueHw>0&&<div onClick={()=>setCardPanel(p=>p==='overdue'?null:'overdue')} style={{flex:1,minWidth:80,background:'white',borderRadius:10,padding:'6px 12px',border:'1px solid #e8eaf0',borderBottom:'3px solid #A02020',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
                 <span style={{fontSize:'0.72rem',color:'#888'}}>기한초과</span>
                 <span style={{fontSize:'0.95rem',fontWeight:600,color:'#A02020'}}>{overdueHw}<span style={{fontSize:'0.72rem',fontWeight:400,color:'#aaa',marginLeft:2}}>건</span></span>
               </div>}
@@ -546,11 +546,11 @@ function AdminDashboard({ onLogout }) {
                 rows=Object.values(grp).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
               } else {
                 const grp={};
-                homework.filter(h=>{if(h.completedAt)return false;if(cardPanel==='overdue'){const d=h.dueDate?new Date(h.dueDate):null;return d&&d<now2;}return true;}).forEach(h=>{const st=students.find(x=>x.id===h.studentId);if(!st)return;if(!grp[st.id])grp[st.id]={name:st.name,cnt:0};grp[st.id].cnt++;});
+                homework.filter(h=>{if(h.completedAt)return false;if(cardPanel==='overdue'){const d=h.dueDate?new Date(h.dueDate):null;return d&&d<now2;}return true;}).forEach(h=>{const st=students.find(x=>x.id===h.studentId);if(!st)return;if(!grp[st.id])grp[st.id]={name:st.name,dates:{}};const dk=h.dueDate||'미정';grp[st.id].dates[dk]=(grp[st.id].dates[dk]||0)+1;});
                 rows=Object.values(grp).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
               }
               if(rows.length===0) return <div style={{background:'white',borderRadius:10,padding:'10px 14px',marginBottom:10,fontSize:'0.82rem',color:'#aaa',border:'1px solid #e8eaf0'}}>해당 학생이 없습니다</div>;
-              return (<div style={{background:'white',borderRadius:10,border:'1px solid #e8eaf0',marginBottom:10,overflow:'hidden'}}>{rows.map((r,i)=>(<div key={i} style={{padding:'7px 14px',borderBottom:i<rows.length-1?'1px solid #f5f5f5':'none',display:'flex',justifyContent:'space-between'}}><span style={{fontWeight:600,fontSize:'0.85rem',color:'#1a2744'}}>{r.name}</span><span style={{fontSize:'0.78rem',color:'#888'}}>{r.cnt}개</span></div>))}</div>);
+              return (<div style={{background:'white',borderRadius:10,border:'1px solid #e8eaf0',marginBottom:10,overflow:'hidden'}}>{rows.map((r,i)=>{const dateStr=Object.entries(r.dates||{}).sort(([a],[b])=>a.localeCompare(b)).map(([d,c])=>{if(d==='미정')return `미정 ${c}개`;const dt=new Date(d);return `${dt.getMonth()+1}월${dt.getDate()}일 ${c}개`;}).join(' / ');return(<div key={i} style={{padding:'7px 14px',borderBottom:i<rows.length-1?'1px solid #f5f5f5':'none'}}><span style={{fontWeight:600,fontSize:'0.85rem',color:'#1a2744'}}>{r.name}</span><div style={{fontSize:'0.75rem',color:'#888',marginTop:2}}>{dateStr||`${Object.values(r.dates||{}).reduce((a,b)=>a+b,0)}개`}</div></div>);})}</div>);
             })()}
             </React.Fragment>
           );
@@ -588,7 +588,7 @@ function AdminDashboard({ onLogout }) {
               loading ? <div className="empty">로딩 중...</div> :
               filteredLectures.length===0 ? <div className="empty">강의가 없습니다</div> :
               displayedLectures.map(l=>(
-                <div key={l.id} style={{background:'white',borderRadius:10,border:'1px solid #e8eaf0',borderLeft:`4px solid ${(l.lectureType||'문제풀이')==='개념강의'?'#1a6b3a':'#1a2744'}`,padding:'8px 12px',marginBottom:6,display:'flex',alignItems:'center',gap:10}}>
+                <div key={l.id} style={{background:'white',borderRadius:10,border:'1px solid #e8eaf0',padding:'8px 12px',marginBottom:6,display:'flex',alignItems:'center',gap:10}}>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:3}}>
                       <span style={{fontSize:'0.67rem',fontWeight:700,background:(l.lectureType||'문제풀이')==='개념강의'?'#e8f5ee':'#eef0f7',color:(l.lectureType||'문제풀이')==='개념강의'?'#1a6b3a':'#1a2744',borderRadius:4,padding:'2px 6px',whiteSpace:'nowrap'}}>{l.lectureType||'문제풀이'}</span>
