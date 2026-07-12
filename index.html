@@ -1125,7 +1125,7 @@ function StudentDashboard({ student, onLogout }) {
                 const due=hw.dueDate?new Date(hw.dueDate):null;
                 const isOverdue=due&&!isDone&&due<new Date();
                 return (
-                  <div key={hw.id} style={{border:`1.5px solid ${isDone?'#1a6b3a':isOverdue?'#A02020':'#1a2744'}`,borderRadius:8,padding:'10px 13px',background:'white',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}} onClick={()=>{setSelectedLecture(lec);setSelectedHomeworkId(hw.id);}}>
+                  <div key={hw.id} style={{border:`1.5px solid ${isDone?'#1a6b3a':isOverdue?'#A02020':'#1a2744'}`,borderRadius:8,padding:'10px 13px',background:'#f5f6f8',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}} onClick={()=>{setSelectedLecture(lec);setSelectedHomeworkId(hw.id);}}>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:700,fontSize:'0.85rem',color:'#222',marginBottom:3}}>{lec.page}p — {lec.title}</div>
                       <div style={{fontSize:'0.72rem',color:'#888'}}>{lec.textbook} · {lec.subject} · {lec.grade}{due?<span style={{color:'#7D0000',fontWeight:600}}>{` · ${isOverdue?'⚠️ 기한초과 ':'마감 '}${due.toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})}`}</span>:''}</div>
