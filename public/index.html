@@ -802,7 +802,13 @@ async function api(path, method='GET', body=null) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(path, opts);
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch(jsonErr) {
+    const text = await res.text().catch(() => '(no body)');
+    throw new Error('서버오류 ' + res.status + ': ' + text.substring(0, 150));
+  }
   if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
   return data;
 }
